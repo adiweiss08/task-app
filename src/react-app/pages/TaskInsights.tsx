@@ -46,8 +46,11 @@ export default function TaskInsights() {
       <div className="mx-auto max-w-5xl">
         <header className="mb-8 flex items-center justify-between">
           <div>
-            <Link to="/" className="mb-2 flex items-center gap-2 text-sm text-sky-600 hover:underline">
-              <ArrowLeft className="h-4 w-4" /> Back to Tasks
+            <Link
+                to="/"
+                className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white/70 px-4 py-2 text-sm font-medium text-sky-700 shadow-sm hover:bg-white hover:shadow-md transition-all">
+                <ArrowLeft className="h-4 w-4" />
+                Back to tasks
             </Link>
             <h1 className="text-3xl font-bold text-slate-900">Task Insights</h1>
             <p className="text-slate-500">Data analysis of your productivity</p>

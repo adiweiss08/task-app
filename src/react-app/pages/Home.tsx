@@ -273,7 +273,7 @@ const addTodo = () => {
         {/* Progress Section */}
         <div className="mb-8 rounded-2xl bg-white/80 p-5 shadow-sm backdrop-blur-sm border border-pink-100">
           <div className="mb-3 flex items-center justify-between">
-            <span className="text-sm font-medium text-foreground">Today's Progress</span>
+            <span className="text-sm font-medium text-foreground">Your Progress</span>
             <span className="text-sm text-muted-foreground">
               {completedCount} of {totalCount} tasks
             </span>
