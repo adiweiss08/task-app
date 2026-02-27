@@ -1,12 +1,11 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Plus, Calendar, Flag, CheckCircle2, Circle, Search, X, Tag, Clock, ArrowUpDown, StickyNote, ImagePlus, Trash2, ListTodo, Square, CheckSquare, CalendarDays } from "lucide-react";
+import { Plus, Calendar, Check, Flag, CheckCircle2, Circle, Search, X, Tag, Clock, ArrowUpDown, StickyNote, ImagePlus, Trash2, ListTodo, Square, CheckSquare, CalendarDays } from "lucide-react";
 import { Link } from "react-router";
 import { BarChart3 } from "lucide-react";
 import { Button } from "@/react-app/components/ui/button";
 import { Input } from "@/react-app/components/ui/input";
 import { Badge } from "@/react-app/components/ui/badge";
 import { Progress } from "@/react-app/components/ui/progress";
-
 type Priority = "low" | "medium" | "high";
 type Category = string;
 type FilterStatus = "all" | "active" | "completed";
@@ -213,8 +212,7 @@ export default function HomePage() {
 
 
   const addSubtask = async (todoId: number, title: string) => {
-    const todoToUpdate = todos.find((t) => t.id === todoId);
-    if (!todoToUpdate) {
+    const todoToUpdate = todos.find((t) => String(t.id) === String(todoId)); if (!todoToUpdate) {
       console.error("Debug: Todo not found for ID:", todoId);
       return;
     }
@@ -633,11 +631,16 @@ function TodoItem({ todo, onToggle, onDelete, onRemoveImage, onAddImage, onExpan
   const completedSubtasks = todo.subtasks.filter((st) => st.completed).length;
   const totalSubtasks = todo.subtasks.length;
 
-  const handleAddSubtask = () => {
-    if (newSubtaskTitle.trim()) {
-      onAddSubtask(todo.id, newSubtaskTitle.trim());
-      setNewSubtaskTitle("");
-    }
+  const handleAddSubtask = async () => {
+    // בדיקה שיש טקסט
+    if (!newSubtaskTitle.trim()) return;
+
+    // קריאה לפונקציה ששומרת ב-db.json (זו ששלחתי לך קודם)
+    onAddSubtask(todo.id, newSubtaskTitle.trim());
+
+    // ניקוי השדה וסגירה רק אחרי השמירה
+    setNewSubtaskTitle("");
+    setShowSubtaskInput(false);
   };
 
   const priorityStyles: Record<Priority, string> = {
@@ -795,12 +798,21 @@ function TodoItem({ todo, onToggle, onDelete, onRemoveImage, onAddImage, onExpan
                     autoFocus
                     className="flex-1 bg-transparent text-sm border-none outline-none placeholder:text-muted-foreground/50"
                   />
+
+                  {/* כפתור שמירה חדש - שומר בשרת גם בלי Enter */}
+                  <button
+                    onClick={handleAddSubtask}
+                    className="text-xs font-bold text-pink-500 hover:text-pink-700 px-2"
+                  >
+                    SAVE
+                  </button>
+
                   <button
                     onClick={() => {
                       setShowSubtaskInput(false);
                       setNewSubtaskTitle("");
                     }}
-                    className="text-muted-foreground/40 hover:text-muted-foreground"
+                    className="text-muted-foreground/40 hover:text-muted-foreground p-1"
                   >
                     <X className="h-3 w-3" />
                   </button>
