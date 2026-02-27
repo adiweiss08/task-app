@@ -179,26 +179,81 @@ export default function HomePage() {
       .catch((err) => console.error("Error deleting task:", err));
   };
 
-  const removeImage = (id: number) => {
-    setTodos(todos.map((todo) => (todo.id === id ? { ...todo, imageUrl: null } : todo)));
+  const removeImage = async (id: number) => {
+    try {
+      // 1. עדכון בשרת
+      await fetch(`http://localhost:5000/tasks/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl: null }),
+      });
+
+      // 2. עדכון ב-UI
+      setTodos(todos.map((todo) => (todo.id === id ? { ...todo, imageUrl: null } : todo)));
+    } catch (err) {
+      console.error("Failed to remove image from server:", err);
+    }
   };
 
-  const addImageToTodo = (id: number, imageUrl: string) => {
-    setTodos(todos.map((todo) => (todo.id === id ? { ...todo, imageUrl } : todo)));
+  const addImageToTodo = async (id: number, imageUrl: string) => {
+    try {
+      // 1. עדכון בשרת
+      await fetch(`http://localhost:5000/tasks/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl: imageUrl }),
+      });
+
+      // 2. עדכון ב-UI
+      setTodos(todos.map((todo) => (todo.id === id ? { ...todo, imageUrl } : todo)));
+    } catch (err) {
+      console.error("Failed to save image to server:", err);
+    }
   };
 
-  const addSubtask = (todoId: number, title: string) => {
-    setTodos(todos.map((todo) => {
-      if (todo.id === todoId) {
-        const newSubtask: Subtask = {
-          id: Date.now(),
-          title,
-          completed: false,
-        };
-        return { ...todo, subtasks: [...todo.subtasks, newSubtask] };
+
+  const addSubtask = async (todoId: number, title: string) => {
+    const todoToUpdate = todos.find((t) => t.id === todoId);
+    if (!todoToUpdate) {
+      console.error("Debug: Todo not found for ID:", todoId);
+      return;
+    }
+
+    // ודאי שיש מערך subtasks, גם אם הוא לא היה קיים קודם ב-JSON
+    const currentSubtasks = todoToUpdate.subtasks || [];
+
+    const newSubtask: Subtask = {
+      id: Date.now(),
+      title,
+      completed: false,
+    };
+
+    const updatedTodo = {
+      ...todoToUpdate,
+      subtasks: [...currentSubtasks, newSubtask],
+    };
+
+    console.log("Debug: Sending updated todo to server:", updatedTodo);
+
+    try {
+      const response = await fetch(`http://localhost:5000/tasks/${todoId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedTodo),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Server error: ${response.status} - ${errorText}`);
       }
-      return todo;
-    }));
+
+      const savedTodo = await response.json();
+      console.log("Debug: Server saved successfully:", savedTodo);
+
+      setTodos((prev) => prev.map((t) => (t.id === todoId ? savedTodo : t)));
+    } catch (err) {
+      console.error("Debug: Full error details:", err);
+    }
   };
 
   const toggleSubtask = async (todoId: number, subtaskId: number) => {
@@ -759,13 +814,11 @@ function TodoItem({ todo, onToggle, onDelete, onRemoveImage, onAddImage, onExpan
         <div className="mt-auto px-4 pb-3">
           <button
             onClick={() => setShowSubtaskInput(true)}
-            className={`ml-6 flex items-center gap-1.5 text-[11px] text-muted-foreground/60 hover:text-pink-500 transition-colors ${showSubtaskInput ? "hidden" : ""}`}
-          >
+            className={`ml-6 flex items-center gap-1.5 text-[11px] text-muted-foreground/60 hover:text-pink-500 transition-colors ${showSubtaskInput ? "hidden" : ""}`}>
             <Plus className="h-3 w-3" />
             <span>Add checklist item</span>
           </button>
         </div>
-
         {/* Task Image */}
         {todo.imageUrl && (
           <div className="relative px-4 pb-4">

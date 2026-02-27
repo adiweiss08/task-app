@@ -23,6 +23,11 @@
           "id": 3,
           "title": "Send to manager for review",
           "completed": true
+        },
+        {
+          "id": 1772229274260,
+          "title": "asd",
+          "completed": false
         }
       ],
       "createdAt": 1738320000000
@@ -34,7 +39,7 @@
       "priority": "medium",
       "category": "health",
       "dueDate": "2026-03-22",
-      "imageUrl": null,
+      "imageUrl": "data:image/png;base64,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",
       "subtasks": [],
       "createdAt": 1738233600000
     },
@@ -45,7 +50,7 @@
       "priority": "low",
       "category": "shopping",
       "dueDate": "2026-03-18",
-      "imageUrl": "https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&h=300&fit=crop",
+      "imageUrl": null,
       "subtasks": [
         {
           "id": 1,
@@ -69,17 +74,6 @@
         }
       ],
       "createdAt": 1738147200000
-    },
-    {
-      "id": "303f",
-      "title": "hey",
-      "completed": false,
-      "priority": "medium",
-      "category": "personal",
-      "dueDate": null,
-      "imageUrl": null,
-      "subtasks": [],
-      "createdAt": 1772226930095
     }
   ],
   "birthdays": [
