@@ -69,17 +69,6 @@
         }
       ],
       "createdAt": 1738147200000
-    },
-    {
-      "id": "4",
-      "title": "Prepare presentation slides",
-      "completed": false,
-      "priority": "high",
-      "category": "work",
-      "dueDate": "2026-03-21",
-      "imageUrl": null,
-      "subtasks": [],
-      "createdAt": 1738363200000
     }
   ],
   "birthdays": [
@@ -87,16 +76,6 @@
       "id": "1",
       "name": "Mom",
       "date": "1975-03-12"
-    },
-    {
-      "id": "2",
-      "name": "Best Friend",
-      "date": "2000-07-05"
-    },
-    {
-      "id": "3",
-      "name": "BABA",
-      "date": "1950-11-21"
     },
     {
       "id": "f784",

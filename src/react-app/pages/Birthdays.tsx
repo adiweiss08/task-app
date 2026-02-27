@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { Calendar as CalendarIcon, Gift, ArrowLeft, CheckCircle2, Star } from "lucide-react";
+import { Calendar as CalendarIcon, Gift, ArrowLeft, CheckCircle2, Star, Trash2 } from "lucide-react";
 import { Link } from "react-router";
 
 interface Birthday {
   id: number;
   name: string;
-  date: string; // ISO yyyy-mm-dd
+  date: string;
 }
 
 interface TodoForCalendar {
@@ -17,14 +17,8 @@ interface TodoForCalendar {
 interface Holiday {
   id: string;
   name: string;
-  date: string; // ISO yyyy-mm-dd
+  date: string;
 }
-
-const initialBirthdays: Birthday[] = [
-  { id: 1, name: "Mom", date: "2026-03-12" },
-  { id: 2, name: "Best Friend", date: "2026-07-05" },
-  { id: 3, name: "BABA", date: "2026-11-21" },
-];
 
 const israelHolidays2026: Holiday[] = [
   { id: "tu-bishvat", name: "Tu BiShvat", date: "2026-02-02" },
@@ -64,7 +58,6 @@ export default function BirthdaysPage() {
       .then(data => setBirthdays(data))
       .catch(err => console.error("Error loading birthdays:", err));
       
-    // טעינת משימות (Tasks) מה-Backend כדי שיופיעו ביומן
     fetch('http://localhost:5000/tasks')
       .then(res => res.json())
       .then(data => setTasks(data))
@@ -128,6 +121,18 @@ export default function BirthdaysPage() {
       .catch(err => console.error("Error saving birthday:", err));
   };
 
+  const deleteBirthday = (id: number) => {
+    fetch(`http://localhost:5000/birthdays/${id}`, {
+      method: 'DELETE',
+    })
+      .then((res) => {
+        if (res.ok) {
+          setBirthdays(birthdays.filter((b) => b.id !== id));
+        }
+      })
+      .catch((err) => console.error("Error deleting birthday:", err));
+  };
+
   const formatMonthYear = (date: Date) =>
     date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
@@ -168,10 +173,10 @@ export default function BirthdaysPage() {
             </div>
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-foreground">
-                Birthday Calendar
+                My Calendar
               </h1>
               <p className="text-muted-foreground">
-                Keep track of birthdays, tasks, and Israeli holidays
+                Keep track of birthdays, tasks and holidays
               </p>
             </div>
           </div>
@@ -411,18 +416,29 @@ export default function BirthdaysPage() {
                   return (
                     <li
                       key={b.id}
-                      className="flex items-center justify-between py-2"
+                      className="group flex items-center justify-between py-2 transition-colors hover:bg-sky-50/30"
                     >
-                      <span className="font-medium text-foreground">
-                        {b.name}
-                      </span>
-                      <span className="text-[11px] text-muted-foreground">
-                        {d.toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </span>
+                      <div className="flex flex-col">
+                        <span className="font-medium text-foreground">
+                          {b.name}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {d.toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </span>
+                      </div>
+
+                      {/* כפתור המחיקה שמופיע ב-Hover */}
+                      <button
+                        onClick={() => deleteBirthday(b.id)}
+                        className="ml-2 rounded-lg p-1.5 text-muted-foreground opacity-0 transition-all hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
+                        title="Delete birthday"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     </li>
                   );
                 })}

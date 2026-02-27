@@ -29,24 +29,6 @@ interface Todo {
   createdAt: number;
 }
 
-const initialTodos: Todo[] = [
-  { id: 1, title: "Review quarterly report", completed: false, priority: "high", category: "work", dueDate: "2025-01-20", imageUrl: null, subtasks: [
-    { id: 1, title: "Read Q4 sales data", completed: true },
-    { id: 2, title: "Prepare summary slides", completed: false },
-    { id: 3, title: "Send to manager for review", completed: false },
-  ], createdAt: Date.now() - 86400000 },
-  { id: 2, title: "Schedule dentist appointment", completed: false, priority: "medium", category: "health", dueDate: "2025-01-22", imageUrl: null, subtasks: [], createdAt: Date.now() - 172800000 },
-  { id: 3, title: "Buy groceries for the week", completed: true, priority: "low", category: "shopping", dueDate: "2025-01-18", imageUrl: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&h=300&fit=crop", subtasks: [
-    { id: 1, title: "Milk", completed: true },
-    { id: 2, title: "Eggs", completed: true },
-    { id: 3, title: "Bread", completed: true },
-    { id: 4, title: "Fruits", completed: true },
-  ], createdAt: Date.now() - 259200000 },
-  { id: 4, title: "Prepare presentation slides", completed: false, priority: "high", category: "work", dueDate: "2025-01-21", imageUrl: null, subtasks: [], createdAt: Date.now() - 43200000 },
-  { id: 5, title: "Call mom for birthday", completed: false, priority: "medium", category: "personal", dueDate: "2025-01-19", imageUrl: null, subtasks: [], createdAt: Date.now() - 129600000 },
-  { id: 6, title: "Morning yoga session", completed: true, priority: "low", category: "health", dueDate: null, imageUrl: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=300&fit=crop", subtasks: [], createdAt: Date.now() - 345600000 },
-];
-
 const baseCategories: { value: Category; label: string; color: string; bg: string }[] = [
   { value: "work", label: "Work", color: "text-blue-600", bg: "bg-blue-100 border-blue-200" },
   { value: "personal", label: "Personal", color: "text-purple-600", bg: "bg-purple-100 border-purple-200" },
@@ -142,31 +124,55 @@ export default function HomePage() {
     }
   };
 
-  const addTodo = () => {
-    if (!newTask.trim()) return;
-    const newTodo: Todo = {
-      id: Date.now(),
-      title: newTask,
-      completed: false,
-      priority: newPriority,
-      category: newCategory,
-      dueDate: newDueDate || null,
-      imageUrl: newImage,
-      subtasks: [],
-      createdAt: Date.now(),
-    };
-    setTodos([newTodo, ...todos]);
-    setNewTask("");
-    setNewDueDate("");
-    setNewImage(null);
-    setShowAddForm(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+const addTodo = () => {
+  if (!newTask.trim()) return;
+
+  // 1. יוצרים את האובייקט (בלי ID, השרת יוצר אותו לבד)
+  const newTodo = {
+    title: newTask,
+    completed: false,
+    priority: newPriority,
+    category: newCategory,
+    dueDate: newDueDate || null,
+    imageUrl: newImage,
+    subtasks: [],
+    createdAt: Date.now(),
+  };
+
+    fetch('http://localhost:5000/tasks', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(newTodo),
+    })
+      .then((res) => res.json())
+      .then((savedTodo) => {
+        setTodos([savedTodo, ...todos]);
+        
+        setNewTask("");
+        setNewDueDate("");
+        setNewImage(null);
+        setShowAddForm(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      })
+      .catch((err) => console.error("Error adding task:", err));
   };
 
   const deleteTodo = (id: number) => {
-    setTodos(todos.filter((todo) => todo.id !== id));
+    fetch(`http://localhost:5000/tasks/${id}`, {
+      method: 'DELETE',
+    })
+      .then((res) => {
+        if (res.ok) {
+          setTodos(todos.filter((todo) => todo.id !== id));
+        } else {
+          console.error("Failed to delete from server");
+        }
+      })
+      .catch((err) => console.error("Error deleting task:", err));
   };
 
   const removeImage = (id: number) => {
@@ -218,7 +224,11 @@ export default function HomePage() {
   };
 
   const clearCompleted = () => {
-    setTodos(todos.filter((todo) => !todo.completed));
+    const completedTodos = todos.filter(t => t.completed);
+
+    completedTodos.forEach(todo => {
+      deleteTodo(todo.id);
+    });
   };
 
   const completedCount = todos.filter((t) => t.completed).length;
@@ -236,7 +246,7 @@ export default function HomePage() {
             </div>
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-foreground">My Tasks</h1>
-              <p className="text-muted-foreground">Organize your day beautifully</p>
+              <p className="text-muted-foreground">Organize your tasks efficiently</p>
             </div>
           </div>
           <Link
@@ -244,7 +254,7 @@ export default function HomePage() {
             className="inline-flex items-center gap-2 rounded-full border border-pink-200 bg-white/70 px-4 py-2 text-sm font-medium text-pink-700 shadow-sm hover:bg-white hover:shadow-md transition-all"
           >
             <CalendarDays className="h-4 w-4" />
-            Birthday calendar
+            My Calendar
           </Link>
         </header>
 
