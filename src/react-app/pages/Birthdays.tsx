@@ -42,6 +42,7 @@ const israelHolidays2026: Holiday[] = [
 
 export default function BirthdaysPage() {
   const [birthdays, setBirthdays] = useState<Birthday[]>([]);
+  const [apiHolidays, setApiHolidays] = useState<Holiday[]>([]);
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [tasks, setTasks] = useState<TodoForCalendar[]>([]);
@@ -98,6 +99,27 @@ export default function BirthdaysPage() {
       // ignore
     }
   }, [birthdayColor, holidayColor]);
+
+  useEffect(() => {
+    fetch("https://www.hebcal.com/hebcal?v=1&cfg=json&maj=on&min=off&mod=off&nx=off&year=2026&month=x&ss=off&mf=off&geo=country&location=IL")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.items) {
+          const filtered = data.items.filter((item: any) => 
+            item.category === "holiday" || item.category === "roshchodesh"
+          );
+
+          const formatted = filtered.map((item: any) => ({
+            id: item.title + item.date,
+            name: item.title,
+            date: item.date
+          }));
+          
+          setApiHolidays(formatted);
+        }
+      })
+      .catch((err) => console.error("Error fetching holidays:", err));
+  }, []);
 
   const addBirthday = () => {
     if (!name.trim() || !date) return;
@@ -317,7 +339,7 @@ export default function BirthdaysPage() {
                   const bD = parseInt(parts[2], 10);
                   return (bM - 1) === day.getMonth() && bD === day.getDate();
                 });              const dayTasks = tasks.filter((t) => t.dueDate === iso);
-              const dayHolidays = israelHolidays2026.filter((h) => {
+              const dayHolidays = apiHolidays.filter((h) => {
                 const [, m, d] = h.date.split("-").map(Number);
                 return m - 1 === day.getMonth() && d === day.getDate();
               });
@@ -448,10 +470,10 @@ export default function BirthdaysPage() {
 
         <section className="mt-4 rounded-2xl border border-sky-100 bg-white/90 p-5 shadow-sm">
           <h2 className="mb-3 text-sm font-semibold text-sky-900">
-            Israeli holidays (2025)
+            Israeli holidays
           </h2>
           <ul className="divide-y divide-sky-50 text-xs">
-            {israelHolidays2026.map((h) => {
+            {apiHolidays.map((h) => {
               const d = new Date(h.date);
               return (
                 <li
