@@ -21,23 +21,29 @@ interface Holiday {
 }
 
 const initialBirthdays: Birthday[] = [
-  { id: 1, name: "Mom", date: "2025-03-12" },
-  { id: 2, name: "Best Friend", date: "2025-07-05" },
-  { id: 3, name: "Coworker", date: "2025-11-21" },
+  { id: 1, name: "Mom", date: "2026-03-12" },
+  { id: 2, name: "Best Friend", date: "2026-07-05" },
+  { id: 3, name: "BABA", date: "2026-11-21" },
 ];
 
-const israelHolidays2025: Holiday[] = [
-  { id: "pesach-1", name: "Passover (Eve)", date: "2025-04-12" },
-  { id: "yom-hashoah", name: "Yom HaShoah", date: "2025-04-24" },
-  { id: "yom-hazikaron", name: "Yom HaZikaron", date: "2025-04-30" },
-  { id: "yom-haatzmaut", name: "Yom HaAtzmaut", date: "2025-05-01" },
-  { id: "lag-baomer", name: "Lag BaOmer", date: "2025-05-15" },
-  { id: "shavuot-1", name: "Shavuot", date: "2025-06-01" },
-  { id: "tisha-bav", name: "Tisha B'Av", date: "2025-08-02" },
-  { id: "rosh-hashanah-1", name: "Rosh Hashanah", date: "2025-09-22" },
-  { id: "yom-kippur", name: "Yom Kippur", date: "2025-10-01" },
-  { id: "sukkot-1", name: "Sukkot", date: "2025-10-06" },
-  { id: "jerusalem-day", name: "Jerusalem Day", date: "2025-05-26" },
+const israelHolidays2026: Holiday[] = [
+  { id: "tu-bishvat", name: "Tu BiShvat", date: "2026-02-02" },
+  { id: "purim", name: "Purim", date: "2026-03-03" },
+  { id: "shushan-purim", name: "Shushan Purim", date: "2026-03-04" },
+  { id: "pesach-1", name: "Passover (Eve)", date: "2026-04-01" },
+  { id: "pesach-end", name: "Passover (7th Day)", date: "2026-04-08" },
+  { id: "yom-hashoah", name: "Yom HaShoah", date: "2026-04-14" },
+  { id: "yom-hazikaron", name: "Yom HaZikaron", date: "2026-04-21" },
+  { id: "yom-haatzmaut", name: "Yom HaAtzmaut", date: "2026-04-22" },
+  { id: "lag-baomer", name: "Lag BaOmer", date: "2026-05-05" },
+  { id: "jerusalem-day", name: "Jerusalem Day", date: "2026-05-15" },
+  { id: "shavuot-1", name: "Shavuot", date: "2026-05-21" },
+  { id: "tisha-bav", name: "Tisha B'Av", date: "2026-07-23" },
+  { id: "rosh-hashanah-1", name: "Rosh Hashanah (Eve)", date: "2026-09-11" },
+  { id: "yom-kippur", name: "Yom Kippur (Eve)", date: "2026-09-20" },
+  { id: "sukkot-1", name: "Sukkot (Eve)", date: "2026-09-25" },
+  { id: "shmini-atzeret", name: "Simchat Torah", date: "2026-10-02" },
+  { id: "hanukkah-1", name: "Hanukkah (1st Candle)", date: "2026-12-04" },
 ];
 
 export default function BirthdaysPage() {
@@ -246,9 +252,9 @@ export default function BirthdaysPage() {
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
-                    value={birthdayColor}
+                    value={birthdayColor || "#3b82f6"}
                     onChange={(e) => setBirthdayColor(e.target.value)}
-                    className="h-7 w-10 cursor-pointer rounded border border-sky-200 bg-white"
+                    className="h-8 w-12 cursor-pointer rounded-lg border-2 border-sky-100 bg-white p-1 shadow-sm transition-all hover:scale-105 hover:border-sky-300 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-md [&::-webkit-color-swatch]:border-none"
                   />
                   <span className="text-[10px] text-muted-foreground">
                     Icon & text color for birthdays
@@ -260,9 +266,9 @@ export default function BirthdaysPage() {
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
-                    value={holidayColor}
+                    value={holidayColor || "#3b82f6"} 
                     onChange={(e) => setHolidayColor(e.target.value)}
-                    className="h-7 w-10 cursor-pointer rounded border border-sky-200 bg-white"
+                    className="h-8 w-12 cursor-pointer rounded-lg border-2 border-sky-100 bg-white p-1 shadow-sm transition-all hover:scale-105 hover:border-sky-300 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-md [&::-webkit-color-swatch]:border-none"
                   />
                   <span className="text-[10px] text-muted-foreground">
                     Icon & text color for holidays
@@ -307,7 +313,7 @@ export default function BirthdaysPage() {
               const iso = toISO(day);
               const dayBirthdays = birthdays.filter((b) => b.date === iso);
               const dayTasks = tasks.filter((t) => t.dueDate === iso);
-              const dayHolidays = israelHolidays2025.filter((h) => {
+              const dayHolidays = israelHolidays2026.filter((h) => {
                 const [, m, d] = h.date.split("-").map(Number);
                 return m - 1 === day.getMonth() && d === day.getDate();
               });
@@ -422,7 +428,7 @@ export default function BirthdaysPage() {
             Israeli holidays (2025)
           </h2>
           <ul className="divide-y divide-sky-50 text-xs">
-            {israelHolidays2025.map((h) => {
+            {israelHolidays2026.map((h) => {
               const d = new Date(h.date);
               return (
                 <li
