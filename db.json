@@ -1,0 +1,107 @@
+{
+  "tasks": [
+    {
+      "id": "1",
+      "title": "Review quarterly report",
+      "completed": false,
+      "priority": "high",
+      "category": "work",
+      "dueDate": "2026-03-20",
+      "imageUrl": null,
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Read Q4 sales data",
+          "completed": true
+        },
+        {
+          "id": 2,
+          "title": "Prepare summary slides",
+          "completed": false
+        },
+        {
+          "id": 3,
+          "title": "Send to manager for review",
+          "completed": false
+        }
+      ],
+      "createdAt": 1738320000000
+    },
+    {
+      "id": "2",
+      "title": "Schedule dentist appointment",
+      "completed": false,
+      "priority": "medium",
+      "category": "health",
+      "dueDate": "2026-03-22",
+      "imageUrl": null,
+      "subtasks": [],
+      "createdAt": 1738233600000
+    },
+    {
+      "id": "3",
+      "title": "Buy groceries for the week",
+      "completed": true,
+      "priority": "low",
+      "category": "shopping",
+      "dueDate": "2026-03-18",
+      "imageUrl": "https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&h=300&fit=crop",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Milk",
+          "completed": true
+        },
+        {
+          "id": 2,
+          "title": "Eggs",
+          "completed": true
+        },
+        {
+          "id": 3,
+          "title": "Bread",
+          "completed": true
+        },
+        {
+          "id": 4,
+          "title": "Fruits",
+          "completed": true
+        }
+      ],
+      "createdAt": 1738147200000
+    },
+    {
+      "id": "4",
+      "title": "Prepare presentation slides",
+      "completed": false,
+      "priority": "high",
+      "category": "work",
+      "dueDate": "2026-03-21",
+      "imageUrl": null,
+      "subtasks": [],
+      "createdAt": 1738363200000
+    }
+  ],
+  "birthdays": [
+    {
+      "id": "1",
+      "name": "Mom",
+      "date": "1975-03-12"
+    },
+    {
+      "id": "2",
+      "name": "Best Friend",
+      "date": "2000-07-05"
+    },
+    {
+      "id": "3",
+      "name": "BABA",
+      "date": "1950-11-21"
+    },
+    {
+      "id": "f784",
+      "name": "Adi",
+      "date": "2005-06-08"
+    }
+  ]
+}

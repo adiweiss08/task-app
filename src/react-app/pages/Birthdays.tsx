@@ -47,18 +47,7 @@ const israelHolidays2026: Holiday[] = [
 ];
 
 export default function BirthdaysPage() {
-  const [birthdays, setBirthdays] = useState<Birthday[]>(() => {
-    if (typeof window === "undefined") return initialBirthdays;
-    try {
-      const saved = window.localStorage.getItem("mytasks_birthdays");
-      if (saved) {
-        return JSON.parse(saved) as Birthday[];
-      }
-    } catch {
-      // ignore
-    }
-    return initialBirthdays;
-  });
+  const [birthdays, setBirthdays] = useState<Birthday[]>([]);
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [tasks, setTasks] = useState<TodoForCalendar[]>([]);
@@ -70,21 +59,16 @@ export default function BirthdaysPage() {
   const [year, setYear] = useState(today.getFullYear());
 
   useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem("mytasks_todos");
-      if (saved) {
-        const parsed = JSON.parse(saved) as { id: number; title: string; dueDate: string | null }[];
-        setTasks(
-          parsed.map((t) => ({
-            id: t.id,
-            title: t.title,
-            dueDate: t.dueDate,
-          }))
-        );
-      }
-    } catch {
-      // ignore
-    }
+    fetch('http://localhost:5000/birthdays')
+      .then(res => res.json())
+      .then(data => setBirthdays(data))
+      .catch(err => console.error("Error loading birthdays:", err));
+      
+    // טעינת משימות (Tasks) מה-Backend כדי שיופיעו ביומן
+    fetch('http://localhost:5000/tasks')
+      .then(res => res.json())
+      .then(data => setTasks(data))
+      .catch(err => console.error("Error loading tasks:", err));
   }, []);
 
   useEffect(() => {
@@ -124,14 +108,24 @@ export default function BirthdaysPage() {
 
   const addBirthday = () => {
     if (!name.trim() || !date) return;
-    const newBirthday: Birthday = {
-      id: Date.now(),
+
+    const newBirthday = {
       name: name.trim(),
-      date,
+      date: date,
     };
-    setBirthdays([...birthdays, newBirthday]);
-    setName("");
-    setDate("");
+
+    fetch('http://localhost:5000/birthdays', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newBirthday),
+    })
+      .then(res => res.json())
+      .then(savedBirthday => {
+        setBirthdays([...birthdays, savedBirthday]);
+        setName("");
+        setDate("");
+      })
+      .catch(err => console.error("Error saving birthday:", err));
   };
 
   const formatMonthYear = (date: Date) =>

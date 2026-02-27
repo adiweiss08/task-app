@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Plus, Calendar, Flag, CheckCircle2, Circle, Search, X, Tag, Clock, ArrowUpDown, StickyNote, ImagePlus, Trash2, ListTodo, Square, CheckSquare, CalendarDays } from "lucide-react";
 import { Link } from "react-router";
 import { Button } from "@/react-app/components/ui/button";
@@ -73,7 +73,7 @@ const getCategoryStyle = (category: Category) => {
 };
 
 export default function HomePage() {
-  const [todos, setTodos] = useState<Todo[]>(initialTodos);
+  const [todos, setTodos] = useState<Todo[]>([]);
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [categoryFilter, setCategoryFilter] = useState<Category | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -87,6 +87,15 @@ export default function HomePage() {
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [categories, setCategories] = useState(baseCategories);
+  
+  useEffect(() => {
+      fetch('http://localhost:5000/tasks')
+        .then((res) => res.json())
+        .then((data) => {
+          setTodos(data);
+        })
+        .catch((err) => console.error("Error fetching tasks:", err));
+    }, []);
 
   const filteredAndSortedTodos = useMemo(() => {
     let result = todos.filter((todo) => {
