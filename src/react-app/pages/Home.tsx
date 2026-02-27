@@ -69,6 +69,8 @@ export default function HomePage() {
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [categories, setCategories] = useState(baseCategories);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('http://localhost:5000/tasks')
@@ -301,6 +303,18 @@ export default function HomePage() {
   const totalCount = todos.length;
   const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        // כאן אנחנו מעדכנים את ה-State שבו addTodo משתמשת
+        setNewImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-fuchsia-50">
       <div className="mx-auto max-w-5xl px-4 py-12">
@@ -662,12 +676,13 @@ function TodoItem({ todo, onToggle, onDelete, onRemoveImage, onAddImage, onExpan
 
   const isOverdue = todo.dueDate && new Date(todo.dueDate) < new Date() && !todo.completed;
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>, todoId: number) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        onAddImage(todo.id, reader.result as string);
+        // עכשיו אנחנו משתמשים ב-todoId שהעברנו
+        onAddImage(todoId, reader.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -736,7 +751,7 @@ function TodoItem({ todo, onToggle, onDelete, onRemoveImage, onAddImage, onExpan
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
-                    onChange={handleImageSelect}
+                    onChange={(e) => handleImageSelect(e, todo.id)}
                     className="hidden"
                   />
                 </label>
