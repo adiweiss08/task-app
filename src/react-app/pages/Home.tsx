@@ -132,7 +132,6 @@ export default function HomePage() {
   const addTodo = () => {
     if (!newTask.trim()) return;
 
-    // 1. יוצרים את האובייקט (בלי ID, השרת יוצר אותו לבד)
     const newTodo = {
       title: newTask,
       completed: false,

@@ -12,6 +12,7 @@ interface TodoForCalendar {
   id: number;
   title: string;
   dueDate: string | null;
+  completed: boolean;
 }
 
 interface Holiday {
@@ -19,26 +20,6 @@ interface Holiday {
   name: string;
   date: string;
 }
-
-const israelHolidays2026: Holiday[] = [
-  { id: "tu-bishvat", name: "Tu BiShvat", date: "2026-02-02" },
-  { id: "purim", name: "Purim", date: "2026-03-03" },
-  { id: "shushan-purim", name: "Shushan Purim", date: "2026-03-04" },
-  { id: "pesach-1", name: "Passover (Eve)", date: "2026-04-01" },
-  { id: "pesach-end", name: "Passover (7th Day)", date: "2026-04-08" },
-  { id: "yom-hashoah", name: "Yom HaShoah", date: "2026-04-14" },
-  { id: "yom-hazikaron", name: "Yom HaZikaron", date: "2026-04-21" },
-  { id: "yom-haatzmaut", name: "Yom HaAtzmaut", date: "2026-04-22" },
-  { id: "lag-baomer", name: "Lag BaOmer", date: "2026-05-05" },
-  { id: "jerusalem-day", name: "Jerusalem Day", date: "2026-05-15" },
-  { id: "shavuot-1", name: "Shavuot", date: "2026-05-21" },
-  { id: "tisha-bav", name: "Tisha B'Av", date: "2026-07-23" },
-  { id: "rosh-hashanah-1", name: "Rosh Hashanah (Eve)", date: "2026-09-11" },
-  { id: "yom-kippur", name: "Yom Kippur (Eve)", date: "2026-09-20" },
-  { id: "sukkot-1", name: "Sukkot (Eve)", date: "2026-09-25" },
-  { id: "shmini-atzeret", name: "Simchat Torah", date: "2026-10-02" },
-  { id: "hanukkah-1", name: "Hanukkah (1st Candle)", date: "2026-12-04" },
-];
 
 export default function BirthdaysPage() {
   const [birthdays, setBirthdays] = useState<Birthday[]>([]);
