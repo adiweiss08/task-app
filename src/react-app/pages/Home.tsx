@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Plus, Calendar, Flag, CheckCircle2, Circle, Search, X, Tag, Clock, ArrowUpDown, StickyNote, ImagePlus, Trash2, ListTodo, Square, CheckSquare, CalendarDays } from "lucide-react";
 import { Link } from "react-router";
+import { BarChart3 } from "lucide-react"; 
 import { Button } from "@/react-app/components/ui/button";
 import { Input } from "@/react-app/components/ui/input";
 import { Badge } from "@/react-app/components/ui/badge";
@@ -249,13 +250,24 @@ const addTodo = () => {
               <p className="text-muted-foreground">Organize your tasks efficiently</p>
             </div>
           </div>
-          <Link
-            to="/birthdays"
-            className="inline-flex items-center gap-2 rounded-full border border-pink-200 bg-white/70 px-4 py-2 text-sm font-medium text-pink-700 shadow-sm hover:bg-white hover:shadow-md transition-all"
-          >
-            <CalendarDays className="h-4 w-4" />
-            My Calendar
-          </Link>
+          <div className="flex items-center justify-center gap-4 mt-6">    
+            <Link
+              to="/birthdays"
+              className="inline-flex items-center gap-2 rounded-full border border-pink-200 bg-white/70 px-4 py-2 text-sm font-medium text-pink-700 shadow-sm hover:bg-white hover:shadow-md transition-all"
+            >
+              <CalendarDays className="h-4 w-4" />
+              My Calendar
+            </Link>
+
+            <Link
+              to="/stats"
+              className="inline-flex items-center gap-2 rounded-full border border-pink-200 bg-white/70 px-4 py-2 text-sm font-medium text-pink-700 shadow-sm hover:bg-white hover:shadow-md transition-all"
+            >
+              <BarChart3 className="h-4 w-4" />
+              Task Insights
+            </Link>
+            
+          </div>
         </header>
 
         {/* Progress Section */}
