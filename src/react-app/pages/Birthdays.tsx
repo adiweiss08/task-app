@@ -56,6 +56,8 @@ export default function BirthdaysPage() {
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [tasks, setTasks] = useState<TodoForCalendar[]>([]);
+  const [birthdayColor, setBirthdayColor] = useState<string>("#ec4899"); // pink-500
+  const [holidayColor, setHolidayColor] = useState<string>("#f59e0b"); // amber-500
 
   const today = new Date();
   const [month, setMonth] = useState(today.getMonth());
@@ -81,11 +83,38 @@ export default function BirthdaysPage() {
 
   useEffect(() => {
     try {
+      const saved = window.localStorage.getItem("mytasks_calendar_colors");
+      if (saved) {
+        const parsed = JSON.parse(saved) as {
+          birthdayColor?: string;
+          holidayColor?: string;
+        };
+        if (parsed.birthdayColor) setBirthdayColor(parsed.birthdayColor);
+        if (parsed.holidayColor) setHolidayColor(parsed.holidayColor);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
       window.localStorage.setItem("mytasks_birthdays", JSON.stringify(birthdays));
     } catch {
       // ignore
     }
   }, [birthdays]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        "mytasks_calendar_colors",
+        JSON.stringify({ birthdayColor, holidayColor })
+      );
+    } catch {
+      // ignore
+    }
+  }, [birthdayColor, holidayColor]);
 
   const addBirthday = () => {
     if (!name.trim() || !date) return;
@@ -128,8 +157,6 @@ export default function BirthdaysPage() {
     setYear(next.getFullYear());
     setMonth(next.getMonth());
   };
-
-  const holidaysForYear = year === 2025 ? israelHolidays2025 : [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-indigo-50 to-fuchsia-50">
@@ -213,6 +240,36 @@ export default function BirthdaysPage() {
               Use the calendar below to see birthdays, task due dates, and
               Israeli holidays for each day of the month.
             </p>
+            <div className="mt-4 grid grid-cols-2 gap-3 text-[11px]">
+              <label className="flex flex-col gap-1">
+                <span className="font-medium text-sky-800">Birthday color</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={birthdayColor}
+                    onChange={(e) => setBirthdayColor(e.target.value)}
+                    className="h-7 w-10 cursor-pointer rounded border border-sky-200 bg-white"
+                  />
+                  <span className="text-[10px] text-muted-foreground">
+                    Icon & text color for birthdays
+                  </span>
+                </div>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="font-medium text-sky-800">Holiday color</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={holidayColor}
+                    onChange={(e) => setHolidayColor(e.target.value)}
+                    className="h-7 w-10 cursor-pointer rounded border border-sky-200 bg-white"
+                  />
+                  <span className="text-[10px] text-muted-foreground">
+                    Icon & text color for holidays
+                  </span>
+                </div>
+              </label>
+            </div>
           </div>
         </div>
 
@@ -250,7 +307,10 @@ export default function BirthdaysPage() {
               const iso = toISO(day);
               const dayBirthdays = birthdays.filter((b) => b.date === iso);
               const dayTasks = tasks.filter((t) => t.dueDate === iso);
-              const dayHolidays = holidaysForYear.filter((h) => h.date === iso);
+              const dayHolidays = israelHolidays2025.filter((h) => {
+                const [, m, d] = h.date.split("-").map(Number);
+                return m - 1 === day.getMonth() && d === day.getDate();
+              });
               const isCurrentMonth = day.getMonth() === month;
               const isToday = day.toDateString() === today.toDateString();
 
@@ -277,8 +337,11 @@ export default function BirthdaysPage() {
                   </div>
 
                   {dayBirthdays.length > 0 && (
-                    <div className="mb-1 flex items-center gap-1 text-[11px] text-sky-800">
-                      <Gift className="h-3 w-3 text-pink-500" />
+                    <div
+                      className="mb-1 flex items-center gap-1 text-[11px]"
+                      style={{ color: birthdayColor }}
+                    >
+                      <Gift className="h-3 w-3" style={{ color: birthdayColor }} />
                       <span>
                         {dayBirthdays.length === 1
                           ? dayBirthdays[0].name
@@ -299,8 +362,11 @@ export default function BirthdaysPage() {
                   )}
 
                   {dayHolidays.length > 0 && (
-                    <div className="flex items-center gap-1 text-[11px] text-amber-800">
-                      <Star className="h-3 w-3 text-amber-500" />
+                    <div
+                      className="flex items-center gap-1 text-[11px]"
+                      style={{ color: holidayColor }}
+                    >
+                      <Star className="h-3 w-3" style={{ color: holidayColor }} />
                       <span>
                         {dayHolidays.length === 1
                           ? dayHolidays[0].name
@@ -363,8 +429,11 @@ export default function BirthdaysPage() {
                   key={h.id}
                   className="flex items-center justify-between py-2"
                 >
-                  <span className="flex items-center gap-1 font-medium text-foreground">
-                    <Star className="h-3 w-3 text-amber-500" />
+                  <span
+                    className="flex items-center gap-1 font-medium"
+                    style={{ color: holidayColor }}
+                  >
+                    <Star className="h-3 w-3" style={{ color: holidayColor }} />
                     {h.name}
                   </span>
                   <span className="text-[11px] text-muted-foreground">
