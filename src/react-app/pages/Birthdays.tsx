@@ -311,8 +311,13 @@ export default function BirthdaysPage() {
           <div className="grid grid-cols-7 gap-1 text-xs">
             {days.map((day) => {
               const iso = toISO(day);
-              const dayBirthdays = birthdays.filter((b) => b.date === iso);
-              const dayTasks = tasks.filter((t) => t.dueDate === iso);
+              const dayBirthdays = birthdays.filter((b) => {
+                  if (!b.date) return false;
+                  const parts = b.date.split("-");
+                  const bM = parseInt(parts[1], 10);
+                  const bD = parseInt(parts[2], 10);
+                  return (bM - 1) === day.getMonth() && bD === day.getDate();
+                });              const dayTasks = tasks.filter((t) => t.dueDate === iso);
               const dayHolidays = israelHolidays2026.filter((h) => {
                 const [, m, d] = h.date.split("-").map(Number);
                 return m - 1 === day.getMonth() && d === day.getDate();
@@ -342,19 +347,27 @@ export default function BirthdaysPage() {
                     )}
                   </div>
 
-                  {dayBirthdays.length > 0 && (
-                    <div
-                      className="mb-1 flex items-center gap-1 text-[11px]"
-                      style={{ color: birthdayColor }}
-                    >
-                      <Gift className="h-3 w-3" style={{ color: birthdayColor }} />
-                      <span>
-                        {dayBirthdays.length === 1
-                          ? dayBirthdays[0].name
-                          : `${dayBirthdays.length} birthdays`}
-                      </span>
-                    </div>
-                  )}
+                  {dayBirthdays.map((b, i) => {
+                    const birthYear = Number(b.date.split("-")[0]);
+                    const currentYear = day.getFullYear();
+                    const age = currentYear - birthYear;
+
+                    return (
+                      <div
+                        key={i}
+                        className="mb-1 flex items-center gap-1 text-[11px] font-medium"
+                        style={{ color: birthdayColor }}
+                      >
+                        <Gift className="h-3 w-3" />
+                        <span className="truncate">
+                          {b.name}
+                          {age > 0 && (
+                            <span className="ml-0.5 opacity-80 text-[9px]">({age})</span>
+                          )}
+                        </span>
+                      </div>
+                    );
+                  })}
 
                   {dayTasks.length > 0 && (
                     <div className="mb-1 flex items-center gap-1 text-[11px] text-emerald-800">
