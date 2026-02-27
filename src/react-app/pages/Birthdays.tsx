@@ -58,7 +58,7 @@ export default function BirthdaysPage() {
       .then(res => res.json())
       .then(data => setBirthdays(data))
       .catch(err => console.error("Error loading birthdays:", err));
-      
+
     fetch('http://localhost:5000/tasks')
       .then(res => res.json())
       .then(data => setTasks(data))
@@ -105,7 +105,7 @@ export default function BirthdaysPage() {
       .then((res) => res.json())
       .then((data) => {
         if (data && data.items) {
-          const filtered = data.items.filter((item: any) => 
+          const filtered = data.items.filter((item: any) =>
             item.category === "holiday" || item.category === "roshchodesh"
           );
 
@@ -114,7 +114,7 @@ export default function BirthdaysPage() {
             name: item.title,
             date: item.date
           }));
-          
+
           setApiHolidays(formatted);
         }
       })
@@ -187,7 +187,7 @@ export default function BirthdaysPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-indigo-50 to-fuchsia-50">
-      <div className="mx-auto max-w-4xl px-4 py-10">
+      <div className="mx-auto max-w-5xl px-4 py-10">
         <header className="mb-8 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-500 shadow-lg shadow-sky-200">
@@ -287,7 +287,7 @@ export default function BirthdaysPage() {
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
-                    value={holidayColor || "#3b82f6"} 
+                    value={holidayColor || "#3b82f6"}
                     onChange={(e) => setHolidayColor(e.target.value)}
                     className="h-8 w-12 cursor-pointer rounded-lg border-2 border-sky-100 bg-white p-1 shadow-sm transition-all hover:scale-105 hover:border-sky-300 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-md [&::-webkit-color-swatch]:border-none"
                   />
@@ -333,12 +333,12 @@ export default function BirthdaysPage() {
             {days.map((day) => {
               const iso = toISO(day);
               const dayBirthdays = birthdays.filter((b) => {
-                  if (!b.date) return false;
-                  const parts = b.date.split("-");
-                  const bM = parseInt(parts[1], 10);
-                  const bD = parseInt(parts[2], 10);
-                  return (bM - 1) === day.getMonth() && bD === day.getDate();
-                });              const dayTasks = tasks.filter((t) => t.dueDate === iso);
+                if (!b.date) return false;
+                const parts = b.date.split("-");
+                const bM = parseInt(parts[1], 10);
+                const bD = parseInt(parts[2], 10);
+                return (bM - 1) === day.getMonth() && bD === day.getDate();
+              }); const dayTasks = tasks.filter((t) => t.dueDate === iso);
               const dayHolidays = apiHolidays.filter((h) => {
                 const [, m, d] = h.date.split("-").map(Number);
                 return m - 1 === day.getMonth() && d === day.getDate();
@@ -349,13 +349,12 @@ export default function BirthdaysPage() {
               return (
                 <div
                   key={iso}
-                  className={`min-h-[80px] rounded-xl border px-2 py-1.5 ${
-                    isToday
-                      ? "border-amber-300 bg-amber-50"
-                      : isCurrentMonth
+                  className={`min-h-[80px] rounded-xl border px-2 py-1.5 ${isToday
+                    ? "border-amber-300 bg-amber-50"
+                    : isCurrentMonth
                       ? "border-sky-100 bg-sky-50"
                       : "border-slate-100 bg-slate-50/60 text-slate-400"
-                  }`}
+                    }`}
                 >
                   <div className="mb-1 flex items-center justify-between">
                     <span className="text-[11px] font-semibold">
