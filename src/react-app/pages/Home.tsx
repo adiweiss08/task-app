@@ -209,7 +209,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-fuchsia-50">
-      <div className="mx-auto max-w-2xl px-4 py-12">
+      <div className="mx-auto max-w-5xl px-4 py-12">
         {/* Header */}
         <header className="mb-8">
           <div className="flex items-center gap-3">
@@ -428,7 +428,7 @@ export default function HomePage() {
         )}
 
         {/* Task List */}
-        <div className="space-y-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredAndSortedTodos.length === 0 ? (
             <div className="py-16 text-center">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-pink-100">
@@ -439,7 +439,7 @@ export default function HomePage() {
             </div>
           ) : (
             filteredAndSortedTodos.map((todo) => (
-              <TodoItem 
+              <TodoItem
                 key={todo.id} 
                 todo={todo} 
                 onToggle={toggleTodo} 
@@ -541,78 +541,89 @@ function TodoItem({ todo, onToggle, onDelete, onRemoveImage, onAddImage, onExpan
 
   return (
     <div
-      className={`group rounded-2xl border bg-white transition-all hover:shadow-md ${
+      className={`group h-full rounded-2xl border bg-white transition-all hover:-translate-y-1 hover:shadow-lg ${
         categoryStyle.bg.replace("bg-", "border-").replace("-100", "-200")
       } ${todo.completed ? "opacity-60" : ""}`}
     >
-      <div className="flex items-start gap-4 p-4">
-        <button
-          onClick={() => onToggle(todo.id)}
-          className="mt-0.5 flex-shrink-0 transition-transform hover:scale-110"
-        >
-          {todo.completed ? (
-            <CheckCircle2 className="h-6 w-6 text-pink-500" />
-          ) : (
-            <Circle className="h-6 w-6 text-pink-300 hover:text-pink-500" />
-          )}
-        </button>
-        <div className="min-w-0 flex-1">
-          <p className={`font-medium text-base ${todo.completed ? "text-muted-foreground line-through" : "text-foreground"}`}>
-            {todo.title}
-          </p>
-          <div className="mt-2.5 flex flex-wrap items-center gap-2">
-            <Badge className={`text-xs font-medium border ${priorityStyles[todo.priority]}`}>
-              <Flag className="mr-1 h-3 w-3" />
-              {todo.priority}
-            </Badge>
-            <Badge className={`text-xs font-medium border ${categoryStyle.bg} ${categoryStyle.color}`}>
-              <Tag className="mr-1 h-3 w-3" />
-              {todo.category}
-            </Badge>
-            {todo.dueDate && (
-              <span className={`flex items-center gap-1.5 text-xs font-medium ${isOverdue ? "text-red-600" : "text-muted-foreground"}`}>
-                <Clock className="h-3 w-3" />
-                {formatDate(todo.dueDate)}
-                {isOverdue && <span className="rounded bg-red-100 px-1.5 py-0.5 text-red-600">Overdue</span>}
-              </span>
+      <div className="flex h-full flex-col p-4">
+        <div className="flex items-start gap-2">
+          <button
+            onClick={() => onToggle(todo.id)}
+            className="mt-0.5 flex-shrink-0 transition-transform hover:scale-110"
+          >
+            {todo.completed ? (
+              <CheckCircle2 className="h-5 w-5 text-pink-500" />
+            ) : (
+              <Circle className="h-5 w-5 text-pink-300 hover:text-pink-500" />
             )}
-            
-            {/* Subtask count */}
-            {totalSubtasks > 0 && (
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                <ListTodo className="h-3 w-3" />
-                {completedSubtasks}/{totalSubtasks}
-              </span>
-            )}
-            
-            {/* Add Image Button (hidden, shown on hover) */}
-            {!todo.imageUrl && (
-              <label className="flex items-center gap-1 text-xs text-muted-foreground/60 opacity-0 group-hover:opacity-100 cursor-pointer hover:text-pink-500 transition-all">
-                <ImagePlus className="h-3 w-3" />
-                <span>Add image</span>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                  className="hidden"
-                />
-              </label>
-            )}
+          </button>
+          <div className="min-w-0 flex-1">
+            <p
+              className={`font-semibold text-sm ${
+                todo.completed ? "text-muted-foreground line-through" : "text-foreground"
+              }`}
+            >
+              {todo.title}
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+              <Badge className={`text-xs font-medium border ${priorityStyles[todo.priority]}`}>
+                <Flag className="mr-1 h-3 w-3" />
+                {todo.priority}
+              </Badge>
+              <Badge className={`text-xs font-medium border ${categoryStyle.bg} ${categoryStyle.color}`}>
+                <Tag className="mr-1 h-3 w-3" />
+                {todo.category}
+              </Badge>
+              {todo.dueDate && (
+                <span
+                  className={`flex items-center gap-1.5 text-xs font-medium ${
+                    isOverdue ? "text-red-600" : "text-muted-foreground"
+                  }`}
+                >
+                  <Clock className="h-3 w-3" />
+                  {formatDate(todo.dueDate)}
+                  {isOverdue && (
+                    <span className="rounded bg-red-100 px-1.5 py-0.5 text-red-600">Overdue</span>
+                  )}
+                </span>
+              )}
+
+              {/* Subtask count */}
+              {totalSubtasks > 0 && (
+                <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <ListTodo className="h-3 w-3" />
+                  {completedSubtasks}/{totalSubtasks}
+                </span>
+              )}
+
+              {/* Add Image Button (hidden, shown on hover) */}
+              {!todo.imageUrl && (
+                <label className="flex items-center gap-1 text-xs text-muted-foreground/60 opacity-0 group-hover:opacity-100 cursor-pointer hover:text-pink-500 transition-all">
+                  <ImagePlus className="h-3 w-3" />
+                  <span>Add image</span>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </div>
           </div>
-        </div>
-        <button
-          onClick={() => onDelete(todo.id)}
-          className="flex-shrink-0 rounded-lg p-1.5 text-muted-foreground opacity-0 transition-all hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
-        >
-          <X className="h-4 w-4" />
-        </button>
+          <button
+            onClick={() => onDelete(todo.id)}
+            className="flex-shrink-0 rounded-lg p-1 text-muted-foreground opacity-0 transition-all hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
+          >
+            <X className="h-3 w-3" />
+          </button>
       </div>
       
       {/* Subtasks */}
       {(todo.subtasks.length > 0 || showSubtaskInput) && (
         <div className="px-4 pb-3">
-          <div className="ml-10 space-y-1.5 border-l-2 border-pink-100 pl-4">
+          <div className="ml-6 space-y-1.5 border-l-2 border-pink-100 pl-3">
             {todo.subtasks.map((subtask) => (
               <div key={subtask.id} className="group/subtask flex items-center gap-2">
                 <button
@@ -625,7 +636,7 @@ function TodoItem({ todo, onToggle, onDelete, onRemoveImage, onAddImage, onExpan
                     <Square className="h-4 w-4" />
                   )}
                 </button>
-                <span className={`flex-1 text-sm ${subtask.completed ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                <span className={`flex-1 text-xs ${subtask.completed ? "text-muted-foreground line-through" : "text-foreground"}`}>
                   {subtask.title}
                 </span>
                 <button
@@ -672,10 +683,10 @@ function TodoItem({ todo, onToggle, onDelete, onRemoveImage, onAddImage, onExpan
       )}
       
       {/* Add subtask button */}
-      <div className="px-4 pb-3">
+      <div className="mt-auto px-4 pb-3">
         <button
           onClick={() => setShowSubtaskInput(true)}
-          className={`ml-10 flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-pink-500 transition-colors ${showSubtaskInput ? "hidden" : ""}`}
+          className={`ml-6 flex items-center gap-1.5 text-[11px] text-muted-foreground/60 hover:text-pink-500 transition-colors ${showSubtaskInput ? "hidden" : ""}`}
         >
           <Plus className="h-3 w-3" />
           <span>Add checklist item</span>
@@ -685,10 +696,10 @@ function TodoItem({ todo, onToggle, onDelete, onRemoveImage, onAddImage, onExpan
       {/* Task Image */}
       {todo.imageUrl && (
         <div className="relative px-4 pb-4">
-          <div className="relative inline-block ml-10">
-            <img 
-              src={todo.imageUrl} 
-              alt="Task attachment" 
+          <div className="relative inline-block ml-6">
+            <img
+              src={todo.imageUrl}
+              alt="Task attachment"
               className="h-32 w-auto rounded-xl object-cover border border-pink-100 cursor-pointer hover:opacity-90 transition-opacity"
               onClick={() => onExpandImage(todo.imageUrl!)}
             />
@@ -702,5 +713,6 @@ function TodoItem({ todo, onToggle, onDelete, onRemoveImage, onAddImage, onExpan
         </div>
       )}
     </div>
+  </div>
   );
 }
