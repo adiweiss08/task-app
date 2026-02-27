@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Assistance:wght@200..800&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -82,7 +81,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: "Assistance", system-ui, sans-serif;
+    font-family: "Nunito", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   }
 
   button:not([disabled]),

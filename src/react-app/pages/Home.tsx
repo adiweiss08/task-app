@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from "react";
-import { Plus, Calendar, Flag, CheckCircle2, Circle, Search, X, Tag, Clock, ArrowUpDown, Sparkles, ImagePlus, Trash2, ListTodo, Square, CheckSquare } from "lucide-react";
+import { Plus, Calendar, Flag, CheckCircle2, Circle, Search, X, Tag, Clock, ArrowUpDown, StickyNote, ImagePlus, Trash2, ListTodo, Square, CheckSquare } from "lucide-react";
 import { Button } from "@/react-app/components/ui/button";
 import { Input } from "@/react-app/components/ui/input";
 import { Badge } from "@/react-app/components/ui/badge";
@@ -214,10 +214,10 @@ export default function HomePage() {
         <header className="mb-8">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 shadow-lg shadow-pink-200">
-              <Sparkles className="h-6 w-6 text-white" />
+              <StickyNote className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">Taskflow</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">My Tasks</h1>
               <p className="text-muted-foreground">Organize your day beautifully</p>
             </div>
           </div>
