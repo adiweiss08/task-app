@@ -1,12 +1,13 @@
 import { useState, useMemo, useRef } from "react";
-import { Plus, Calendar, Flag, CheckCircle2, Circle, Search, X, Tag, Clock, ArrowUpDown, StickyNote, ImagePlus, Trash2, ListTodo, Square, CheckSquare } from "lucide-react";
+import { Plus, Calendar, Flag, CheckCircle2, Circle, Search, X, Tag, Clock, ArrowUpDown, StickyNote, ImagePlus, Trash2, ListTodo, Square, CheckSquare, CalendarDays } from "lucide-react";
+import { Link } from "react-router";
 import { Button } from "@/react-app/components/ui/button";
 import { Input } from "@/react-app/components/ui/input";
 import { Badge } from "@/react-app/components/ui/badge";
 import { Progress } from "@/react-app/components/ui/progress";
 
 type Priority = "low" | "medium" | "high";
-type Category = "work" | "personal" | "health" | "shopping" | "other";
+type Category = string;
 type FilterStatus = "all" | "active" | "completed";
 type SortOption = "newest" | "oldest" | "priority" | "dueDate";
 
@@ -46,7 +47,7 @@ const initialTodos: Todo[] = [
   { id: 6, title: "Morning yoga session", completed: true, priority: "low", category: "health", dueDate: null, imageUrl: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=300&fit=crop", subtasks: [], createdAt: Date.now() - 345600000 },
 ];
 
-const categories: { value: Category; label: string; color: string; bg: string }[] = [
+const baseCategories: { value: Category; label: string; color: string; bg: string }[] = [
   { value: "work", label: "Work", color: "text-blue-600", bg: "bg-blue-100 border-blue-200" },
   { value: "personal", label: "Personal", color: "text-purple-600", bg: "bg-purple-100 border-purple-200" },
   { value: "health", label: "Health", color: "text-emerald-600", bg: "bg-emerald-100 border-emerald-200" },
@@ -61,7 +62,14 @@ const priorities: { value: Priority; label: string }[] = [
 ];
 
 const getCategoryStyle = (category: Category) => {
-  return categories.find((c) => c.value === category) || categories[4];
+  const found = baseCategories.find((c) => c.value === category);
+  if (found) return found;
+  return {
+    value: category,
+    label: category,
+    color: "text-gray-700",
+    bg: "bg-gray-100 border-gray-200",
+  };
 };
 
 export default function HomePage() {
@@ -78,6 +86,7 @@ export default function HomePage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [categories, setCategories] = useState(baseCategories);
 
   const filteredAndSortedTodos = useMemo(() => {
     let result = todos.filter((todo) => {
@@ -211,7 +220,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-fuchsia-50">
       <div className="mx-auto max-w-5xl px-4 py-12">
         {/* Header */}
-        <header className="mb-8">
+        <header className="mb-8 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 shadow-lg shadow-pink-200">
               <StickyNote className="h-6 w-6 text-white" />
@@ -221,6 +230,13 @@ export default function HomePage() {
               <p className="text-muted-foreground">Organize your day beautifully</p>
             </div>
           </div>
+          <Link
+            to="/birthdays"
+            className="inline-flex items-center gap-2 rounded-full border border-pink-200 bg-white/70 px-4 py-2 text-sm font-medium text-pink-700 shadow-sm hover:bg-white hover:shadow-md transition-all"
+          >
+            <CalendarDays className="h-4 w-4" />
+            Birthday calendar
+          </Link>
         </header>
 
         {/* Progress Section */}
@@ -359,7 +375,26 @@ export default function HomePage() {
                 <Tag className="h-4 w-4 text-muted-foreground" />
                 <select
                   value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value as Category)}
+                  onChange={(e) => {
+                    const value = e.target.value as Category;
+                    if (value === "__new__") {
+                      const label = window.prompt("New type name (for example: School, Hobby)");
+                      if (label && label.trim()) {
+                        const trimmed = label.trim();
+                        const slug = trimmed.toLowerCase().replace(/\s+/g, "-");
+                        const newCat = {
+                          value: slug,
+                          label: trimmed,
+                          color: "text-gray-700",
+                          bg: "bg-gray-100 border-gray-200",
+                        };
+                        setCategories((prev) => [...prev, newCat]);
+                        setNewCategory(slug);
+                      }
+                      return;
+                    }
+                    setNewCategory(value);
+                  }}
                   className="rounded-lg border border-pink-200 bg-pink-50/50 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
                 >
                   {categories.map((cat) => (
@@ -367,6 +402,7 @@ export default function HomePage() {
                       {cat.label}
                     </option>
                   ))}
+                  <option value="__new__">+ Add new type…</option>
                 </select>
               </div>
               <div className="flex items-center gap-2">
