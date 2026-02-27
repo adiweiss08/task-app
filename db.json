@@ -3,7 +3,7 @@
     {
       "id": "1",
       "title": "Review quarterly report",
-      "completed": false,
+      "completed": true,
       "priority": "high",
       "category": "work",
       "dueDate": "2026-03-20",
@@ -12,17 +12,17 @@
         {
           "id": 1,
           "title": "Read Q4 sales data",
-          "completed": true
+          "completed": false
         },
         {
           "id": 2,
           "title": "Prepare summary slides",
-          "completed": false
+          "completed": true
         },
         {
           "id": 3,
           "title": "Send to manager for review",
-          "completed": false
+          "completed": true
         }
       ],
       "createdAt": 1738320000000
@@ -55,7 +55,7 @@
         {
           "id": 2,
           "title": "Eggs",
-          "completed": true
+          "completed": false
         },
         {
           "id": 3,

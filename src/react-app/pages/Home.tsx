@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Plus, Calendar, Flag, CheckCircle2, Circle, Search, X, Tag, Clock, ArrowUpDown, StickyNote, ImagePlus, Trash2, ListTodo, Square, CheckSquare, CalendarDays } from "lucide-react";
 import { Link } from "react-router";
-import { BarChart3 } from "lucide-react"; 
+import { BarChart3 } from "lucide-react";
 import { Button } from "@/react-app/components/ui/button";
 import { Input } from "@/react-app/components/ui/input";
 import { Badge } from "@/react-app/components/ui/badge";
@@ -70,15 +70,15 @@ export default function HomePage() {
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [categories, setCategories] = useState(baseCategories);
-  
+
   useEffect(() => {
-      fetch('http://localhost:5000/tasks')
-        .then((res) => res.json())
-        .then((data) => {
-          setTodos(data);
-        })
-        .catch((err) => console.error("Error fetching tasks:", err));
-    }, []);
+    fetch('http://localhost:5000/tasks')
+      .then((res) => res.json())
+      .then((data) => {
+        setTodos(data);
+      })
+      .catch((err) => console.error("Error fetching tasks:", err));
+  }, []);
 
   const filteredAndSortedTodos = useMemo(() => {
     let result = todos.filter((todo) => {
@@ -110,35 +110,39 @@ export default function HomePage() {
     return result;
   }, [todos, filter, categoryFilter, searchQuery, sortBy]);
 
-  const toggleTodo = (id: number) => {
-    setTodos(todos.map((todo) => (todo.id === id ? { ...todo, completed: !todo.completed } : todo)));
-  };
+  const toggleTodo = async (id: number) => {
+    const todoToToggle = todos.find((t) => t.id === id);
+    if (!todoToToggle) return;
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    const newStatus = !todoToToggle.completed;
+
+    try {
+      await fetch(`http://localhost:5000/tasks/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: newStatus }),
+      });
+
+      setTodos(todos.map((todo) => (todo.id === id ? { ...todo, completed: newStatus } : todo)));
+    } catch (err) {
+      console.error("Error updating todo status:", err);
     }
   };
 
-const addTodo = () => {
-  if (!newTask.trim()) return;
+  const addTodo = () => {
+    if (!newTask.trim()) return;
 
-  // 1. יוצרים את האובייקט (בלי ID, השרת יוצר אותו לבד)
-  const newTodo = {
-    title: newTask,
-    completed: false,
-    priority: newPriority,
-    category: newCategory,
-    dueDate: newDueDate || null,
-    imageUrl: newImage,
-    subtasks: [],
-    createdAt: Date.now(),
-  };
+    // 1. יוצרים את האובייקט (בלי ID, השרת יוצר אותו לבד)
+    const newTodo = {
+      title: newTask,
+      completed: false,
+      priority: newPriority,
+      category: newCategory,
+      dueDate: newDueDate || null,
+      imageUrl: newImage,
+      subtasks: [],
+      createdAt: Date.now(),
+    };
 
     fetch('http://localhost:5000/tasks', {
       method: 'POST',
@@ -150,7 +154,7 @@ const addTodo = () => {
       .then((res) => res.json())
       .then((savedTodo) => {
         setTodos([savedTodo, ...todos]);
-        
+
         setNewTask("");
         setNewDueDate("");
         setNewImage(null);
@@ -198,18 +202,27 @@ const addTodo = () => {
     }));
   };
 
-  const toggleSubtask = (todoId: number, subtaskId: number) => {
-    setTodos(todos.map((todo) => {
-      if (todo.id === todoId) {
-        return {
-          ...todo,
-          subtasks: todo.subtasks.map((st) =>
-            st.id === subtaskId ? { ...st, completed: !st.completed } : st
-          ),
-        };
-      }
-      return todo;
-    }));
+  const toggleSubtask = async (todoId: number, subtaskId: number) => {
+    const todoToUpdate = todos.find(t => t.id === todoId);
+    if (!todoToUpdate) return;
+
+    const updatedSubtasks = todoToUpdate.subtasks.map((st) =>
+      st.id === subtaskId ? { ...st, completed: !st.completed } : st
+    );
+
+    try {
+      await fetch(`http://localhost:5000/tasks/${todoId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subtasks: updatedSubtasks }),
+      });
+
+      setTodos(todos.map((todo) =>
+        todo.id === todoId ? { ...todo, subtasks: updatedSubtasks } : todo
+      ));
+    } catch (err) {
+      console.error("Failed to update subtask on server:", err);
+    }
   };
 
   const deleteSubtask = (todoId: number, subtaskId: number) => {
@@ -250,7 +263,7 @@ const addTodo = () => {
               <p className="text-muted-foreground">Organize your tasks efficiently</p>
             </div>
           </div>
-          <div className="flex items-center justify-center gap-4 mt-6">    
+          <div className="flex items-center justify-center gap-4 mt-6">
             <Link
               to="/birthdays"
               className="inline-flex items-center gap-2 rounded-full border border-pink-200 bg-white/70 px-4 py-2 text-sm font-medium text-pink-700 shadow-sm hover:bg-white hover:shadow-md transition-all"
@@ -266,7 +279,7 @@ const addTodo = () => {
               <BarChart3 className="h-4 w-4" />
               Task Insights
             </Link>
-            
+
           </div>
         </header>
 
@@ -322,11 +335,10 @@ const addTodo = () => {
               <button
                 key={status}
                 onClick={() => setFilter(status)}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
-                  filter === status
-                    ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md"
-                    : "text-muted-foreground hover:text-foreground hover:bg-pink-50"
-                }`}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${filter === status
+                  ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md"
+                  : "text-muted-foreground hover:text-foreground hover:bg-pink-50"
+                  }`}
               >
                 {status.charAt(0).toUpperCase() + status.slice(1)}
               </button>
@@ -335,11 +347,10 @@ const addTodo = () => {
           <div className="flex flex-wrap gap-1.5">
             <button
               onClick={() => setCategoryFilter("all")}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
-                categoryFilter === "all"
-                  ? "bg-foreground text-white"
-                  : "bg-white/80 text-muted-foreground hover:bg-white border border-pink-200"
-              }`}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${categoryFilter === "all"
+                ? "bg-foreground text-white"
+                : "bg-white/80 text-muted-foreground hover:bg-white border border-pink-200"
+                }`}
             >
               All
             </button>
@@ -347,11 +358,10 @@ const addTodo = () => {
               <button
                 key={cat.value}
                 onClick={() => setCategoryFilter(cat.value)}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all border ${
-                  categoryFilter === cat.value
-                    ? `${cat.bg} ${cat.color}`
-                    : "bg-white/80 text-muted-foreground hover:bg-white border-pink-200"
-                }`}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all border ${categoryFilter === cat.value
+                  ? `${cat.bg} ${cat.color}`
+                  : "bg-white/80 text-muted-foreground hover:bg-white border-pink-200"
+                  }`}
               >
                 {cat.label}
               </button>
@@ -380,13 +390,13 @@ const addTodo = () => {
               autoFocus
               className="mb-4 border-0 bg-transparent px-0 text-lg font-medium placeholder:text-muted-foreground/50 focus-visible:ring-0"
             />
-            
+
             {/* Image Preview */}
             {newImage && (
               <div className="mb-4 relative inline-block">
-                <img 
-                  src={newImage} 
-                  alt="Task preview" 
+                <img
+                  src={newImage}
+                  alt="Task preview"
                   className="h-24 w-auto rounded-lg object-cover border border-pink-200"
                 />
                 <button
@@ -459,7 +469,7 @@ const addTodo = () => {
                   className="rounded-lg border border-pink-200 bg-pink-50/50 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
                 />
               </div>
-              
+
               {/* Image Upload Button */}
               <label className="flex items-center gap-2 rounded-lg border border-pink-200 bg-pink-50/50 px-3 py-1.5 text-sm cursor-pointer hover:bg-pink-100/50 transition-colors">
                 <ImagePlus className="h-4 w-4 text-muted-foreground" />
@@ -481,9 +491,9 @@ const addTodo = () => {
                 }}>
                   Cancel
                 </Button>
-                <Button 
-                  size="sm" 
-                  onClick={addTodo} 
+                <Button
+                  size="sm"
+                  onClick={addTodo}
                   disabled={!newTask.trim()}
                   className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600"
                 >
@@ -507,9 +517,9 @@ const addTodo = () => {
           ) : (
             filteredAndSortedTodos.map((todo) => (
               <TodoItem
-                key={todo.id} 
-                todo={todo} 
-                onToggle={toggleTodo} 
+                key={todo.id}
+                todo={todo}
+                onToggle={toggleTodo}
                 onDelete={deleteTodo}
                 onRemoveImage={removeImage}
                 onAddImage={addImageToTodo}
@@ -525,14 +535,14 @@ const addTodo = () => {
 
       {/* Image Modal */}
       {expandedImage && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
           onClick={() => setExpandedImage(null)}
         >
           <div className="relative max-h-[90vh] max-w-[90vw]">
-            <img 
-              src={expandedImage} 
-              alt="Expanded task image" 
+            <img
+              src={expandedImage}
+              alt="Expanded task image"
               className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain shadow-2xl"
             />
             <button
@@ -565,7 +575,7 @@ function TodoItem({ todo, onToggle, onDelete, onRemoveImage, onAddImage, onExpan
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [showSubtaskInput, setShowSubtaskInput] = useState(false);
-  
+
   const completedSubtasks = todo.subtasks.filter((st) => st.completed).length;
   const totalSubtasks = todo.subtasks.length;
 
@@ -575,7 +585,7 @@ function TodoItem({ todo, onToggle, onDelete, onRemoveImage, onAddImage, onExpan
       setNewSubtaskTitle("");
     }
   };
-  
+
   const priorityStyles: Record<Priority, string> = {
     high: "bg-red-100 text-red-700 border-red-200",
     medium: "bg-amber-100 text-amber-700 border-amber-200",
@@ -608,9 +618,8 @@ function TodoItem({ todo, onToggle, onDelete, onRemoveImage, onAddImage, onExpan
 
   return (
     <div
-      className={`group h-full rounded-2xl border bg-white transition-all hover:-translate-y-1 hover:shadow-lg ${
-        categoryStyle.bg.replace("bg-", "border-").replace("-100", "-200")
-      } ${todo.completed ? "opacity-60" : ""}`}
+      className={`group h-full rounded-2xl border bg-white transition-all hover:-translate-y-1 hover:shadow-lg ${categoryStyle.bg.replace("bg-", "border-").replace("-100", "-200")
+        } ${todo.completed ? "opacity-60" : ""}`}
     >
       <div className="flex h-full flex-col p-4">
         <div className="flex items-start gap-2">
@@ -626,9 +635,8 @@ function TodoItem({ todo, onToggle, onDelete, onRemoveImage, onAddImage, onExpan
           </button>
           <div className="min-w-0 flex-1">
             <p
-              className={`font-semibold text-sm ${
-                todo.completed ? "text-muted-foreground line-through" : "text-foreground"
-              }`}
+              className={`font-semibold text-sm ${todo.completed ? "text-muted-foreground line-through" : "text-foreground"
+                }`}
             >
               {todo.title}
             </p>
@@ -643,9 +651,8 @@ function TodoItem({ todo, onToggle, onDelete, onRemoveImage, onAddImage, onExpan
               </Badge>
               {todo.dueDate && (
                 <span
-                  className={`flex items-center gap-1.5 text-xs font-medium ${
-                    isOverdue ? "text-red-600" : "text-muted-foreground"
-                  }`}
+                  className={`flex items-center gap-1.5 text-xs font-medium ${isOverdue ? "text-red-600" : "text-muted-foreground"
+                    }`}
                 >
                   <Clock className="h-3 w-3" />
                   {formatDate(todo.dueDate)}
@@ -685,101 +692,101 @@ function TodoItem({ todo, onToggle, onDelete, onRemoveImage, onAddImage, onExpan
           >
             <X className="h-3 w-3" />
           </button>
-      </div>
-      
-      {/* Subtasks */}
-      {(todo.subtasks.length > 0 || showSubtaskInput) && (
-        <div className="px-4 pb-3">
-          <div className="ml-6 space-y-1.5 border-l-2 border-pink-100 pl-3">
-            {todo.subtasks.map((subtask) => (
-              <div key={subtask.id} className="group/subtask flex items-center gap-2">
-                <button
-                  onClick={() => onToggleSubtask(todo.id, subtask.id)}
-                  className="flex-shrink-0 text-muted-foreground hover:text-pink-500 transition-colors"
-                >
-                  {subtask.completed ? (
-                    <CheckSquare className="h-4 w-4 text-pink-500" />
-                  ) : (
-                    <Square className="h-4 w-4" />
-                  )}
-                </button>
-                <span className={`flex-1 text-xs ${subtask.completed ? "text-muted-foreground line-through" : "text-foreground"}`}>
-                  {subtask.title}
-                </span>
-                <button
-                  onClick={() => onDeleteSubtask(todo.id, subtask.id)}
-                  className="flex-shrink-0 text-muted-foreground/40 opacity-0 group-hover/subtask:opacity-100 hover:text-red-500 transition-all"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-            
-            {/* Add subtask input */}
-            {showSubtaskInput && (
-              <div className="flex items-center gap-2">
-                <Square className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
-                <input
-                  type="text"
-                  placeholder="Add item..."
-                  value={newSubtaskTitle}
-                  onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleAddSubtask();
-                    if (e.key === "Escape") {
+        </div>
+
+        {/* Subtasks */}
+        {(todo.subtasks.length > 0 || showSubtaskInput) && (
+          <div className="px-4 pb-3">
+            <div className="ml-6 space-y-1.5 border-l-2 border-pink-100 pl-3">
+              {todo.subtasks.map((subtask) => (
+                <div key={subtask.id} className="group/subtask flex items-center gap-2">
+                  <button
+                    onClick={() => onToggleSubtask(todo.id, subtask.id)}
+                    className="flex-shrink-0 text-muted-foreground hover:text-pink-500 transition-colors"
+                  >
+                    {subtask.completed ? (
+                      <CheckSquare className="h-4 w-4 text-pink-500" />
+                    ) : (
+                      <Square className="h-4 w-4" />
+                    )}
+                  </button>
+                  <span className={`flex-1 text-xs ${subtask.completed ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                    {subtask.title}
+                  </span>
+                  <button
+                    onClick={() => onDeleteSubtask(todo.id, subtask.id)}
+                    className="flex-shrink-0 text-muted-foreground/40 opacity-0 group-hover/subtask:opacity-100 hover:text-red-500 transition-all"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+
+              {/* Add subtask input */}
+              {showSubtaskInput && (
+                <div className="flex items-center gap-2">
+                  <Square className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Add item..."
+                    value={newSubtaskTitle}
+                    onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleAddSubtask();
+                      if (e.key === "Escape") {
+                        setShowSubtaskInput(false);
+                        setNewSubtaskTitle("");
+                      }
+                    }}
+                    autoFocus
+                    className="flex-1 bg-transparent text-sm border-none outline-none placeholder:text-muted-foreground/50"
+                  />
+                  <button
+                    onClick={() => {
                       setShowSubtaskInput(false);
                       setNewSubtaskTitle("");
-                    }
-                  }}
-                  autoFocus
-                  className="flex-1 bg-transparent text-sm border-none outline-none placeholder:text-muted-foreground/50"
-                />
-                <button
-                  onClick={() => {
-                    setShowSubtaskInput(false);
-                    setNewSubtaskTitle("");
-                  }}
-                  className="text-muted-foreground/40 hover:text-muted-foreground"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            )}
+                    }}
+                    className="text-muted-foreground/40 hover:text-muted-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-      
-      {/* Add subtask button */}
-      <div className="mt-auto px-4 pb-3">
-        <button
-          onClick={() => setShowSubtaskInput(true)}
-          className={`ml-6 flex items-center gap-1.5 text-[11px] text-muted-foreground/60 hover:text-pink-500 transition-colors ${showSubtaskInput ? "hidden" : ""}`}
-        >
-          <Plus className="h-3 w-3" />
-          <span>Add checklist item</span>
-        </button>
-      </div>
+        )}
 
-      {/* Task Image */}
-      {todo.imageUrl && (
-        <div className="relative px-4 pb-4">
-          <div className="relative inline-block ml-6">
-            <img
-              src={todo.imageUrl}
-              alt="Task attachment"
-              className="h-32 w-auto rounded-xl object-cover border border-pink-100 cursor-pointer hover:opacity-90 transition-opacity"
-              onClick={() => onExpandImage(todo.imageUrl!)}
-            />
-            <button
-              onClick={() => onRemoveImage(todo.id)}
-              className="absolute -top-2 -right-2 rounded-full bg-red-500 p-1.5 text-white shadow-md hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <Trash2 className="h-3 w-3" />
-            </button>
-          </div>
+        {/* Add subtask button */}
+        <div className="mt-auto px-4 pb-3">
+          <button
+            onClick={() => setShowSubtaskInput(true)}
+            className={`ml-6 flex items-center gap-1.5 text-[11px] text-muted-foreground/60 hover:text-pink-500 transition-colors ${showSubtaskInput ? "hidden" : ""}`}
+          >
+            <Plus className="h-3 w-3" />
+            <span>Add checklist item</span>
+          </button>
         </div>
-      )}
+
+        {/* Task Image */}
+        {todo.imageUrl && (
+          <div className="relative px-4 pb-4">
+            <div className="relative inline-block ml-6">
+              <img
+                src={todo.imageUrl}
+                alt="Task attachment"
+                className="h-32 w-auto rounded-xl object-cover border border-pink-100 cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => onExpandImage(todo.imageUrl!)}
+              />
+              <button
+                onClick={() => onRemoveImage(todo.id)}
+                className="absolute -top-2 -right-2 rounded-full bg-red-500 p-1.5 text-white shadow-md hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
-  </div>
   );
 }

@@ -46,8 +46,9 @@ export default function BirthdaysPage() {
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [tasks, setTasks] = useState<TodoForCalendar[]>([]);
-  const [birthdayColor, setBirthdayColor] = useState<string>("#ec4899"); // pink-500
-  const [holidayColor, setHolidayColor] = useState<string>("#f59e0b"); // amber-500
+  const [birthdayColor, setBirthdayColor] = useState<string>("#ff9dce"); // pink-500
+  const [holidayColor, setHolidayColor] = useState<string>("#80ffa6da"); // amber-500
+  const [tasksColor, setTasksColor] = useState<string>("rgb(200, 118, 255)"); // sky-500
 
   const today = new Date();
   const [month, setMonth] = useState(today.getMonth());
@@ -72,9 +73,11 @@ export default function BirthdaysPage() {
         const parsed = JSON.parse(saved) as {
           birthdayColor?: string;
           holidayColor?: string;
+          tasksColor?: string;
         };
         if (parsed.birthdayColor) setBirthdayColor(parsed.birthdayColor);
         if (parsed.holidayColor) setHolidayColor(parsed.holidayColor);
+        if (parsed.tasksColor) setTasksColor(parsed.tasksColor);
       }
     } catch {
       // ignore
@@ -93,12 +96,12 @@ export default function BirthdaysPage() {
     try {
       window.localStorage.setItem(
         "mytasks_calendar_colors",
-        JSON.stringify({ birthdayColor, holidayColor })
+        JSON.stringify({ birthdayColor, holidayColor, tasksColor })
       );
     } catch {
       // ignore
     }
-  }, [birthdayColor, holidayColor]);
+  }, [birthdayColor, holidayColor, tasksColor]);
 
   useEffect(() => {
     fetch("https://www.hebcal.com/hebcal?v=1&cfg=json&maj=on&min=off&mod=off&nx=off&year=2026&month=x&ss=off&mf=off&geo=country&location=IL")
@@ -263,10 +266,6 @@ export default function BirthdaysPage() {
                 })}
               </span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Use the calendar below to see birthdays, task due dates, and
-              Israeli holidays for each day of the month.
-            </p>
             <div className="mt-4 grid grid-cols-2 gap-3 text-[11px]">
               <label className="flex flex-col gap-1">
                 <span className="font-medium text-sky-800">Birthday color</span>
@@ -277,9 +276,6 @@ export default function BirthdaysPage() {
                     onChange={(e) => setBirthdayColor(e.target.value)}
                     className="h-8 w-12 cursor-pointer rounded-lg border-2 border-sky-100 bg-white p-1 shadow-sm transition-all hover:scale-105 hover:border-sky-300 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-md [&::-webkit-color-swatch]:border-none"
                   />
-                  <span className="text-[10px] text-muted-foreground">
-                    Icon & text color for birthdays
-                  </span>
                 </div>
               </label>
               <label className="flex flex-col gap-1">
@@ -291,9 +287,17 @@ export default function BirthdaysPage() {
                     onChange={(e) => setHolidayColor(e.target.value)}
                     className="h-8 w-12 cursor-pointer rounded-lg border-2 border-sky-100 bg-white p-1 shadow-sm transition-all hover:scale-105 hover:border-sky-300 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-md [&::-webkit-color-swatch]:border-none"
                   />
-                  <span className="text-[10px] text-muted-foreground">
-                    Icon & text color for holidays
-                  </span>
+                </div>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="font-medium text-sky-800">Tasks color</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={tasksColor || "#3b82f6"}
+                    onChange={(e) => setTasksColor(e.target.value)}
+                    className="h-8 w-12 cursor-pointer rounded-lg border-2 border-sky-100 bg-white p-1 shadow-sm transition-all hover:scale-105 hover:border-sky-300 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-md [&::-webkit-color-swatch]:border-none"
+                  />
                 </div>
               </label>
             </div>
@@ -338,11 +342,14 @@ export default function BirthdaysPage() {
                 const bM = parseInt(parts[1], 10);
                 const bD = parseInt(parts[2], 10);
                 return (bM - 1) === day.getMonth() && bD === day.getDate();
-              }); const dayTasks = tasks.filter((t) => t.dueDate === iso);
+              });
+
+              const dayTasks = tasks.filter((t) => t.dueDate === iso && !t.completed);
               const dayHolidays = apiHolidays.filter((h) => {
                 const [, m, d] = h.date.split("-").map(Number);
                 return m - 1 === day.getMonth() && d === day.getDate();
               });
+
               const isCurrentMonth = day.getMonth() === month;
               const isToday = day.toDateString() === today.toDateString();
 
