@@ -163,35 +163,24 @@ export default function HomePage() {
       setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: newStatus } : t));
     } catch (err) { console.error("Toggle error:", err); }
   };
-
-  const addTodo = async () => {
-    if (!newTask.trim()) return;
-    const payload = {
-      title: newTask,
-      priority: newPriority,
-      category: newCategory,
-      due_date: newDueDate || null,
-      image_url: newImage,
-      subtasks: []
-    };
-
+  const addTodo = async (title: string) => {
     try {
       const res = await fetch(`${API_BASE}/api/todos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, subtasks: [] }),
       });
-      const saved = await res.json();
-      const mapped = mapApiTodoToUi(saved);
-
-      // הוספה לרשימה וניקוי טופס בצורה אטומית
-      setTodos(prev => [mapped, ...prev]);
-      setNewTask("");
-      setNewDueDate("");
-      setNewImage(null);
-      setShowAddForm(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    } catch (err) { console.error("Add error:", err); }
+  
+      if (res.ok) {
+        const newTodoRaw = await res.json();
+        const newTodo = mapApiTodoToUi(newTodoRaw);
+        
+        // העדכון הקריטי של ה-State שגורם למסך להשתנות מיד
+        setTodos(prev => [newTodo, ...prev]);
+      }
+    } catch (err) {
+      console.error("Error adding todo:", err);
+    }
   };
 
   const deleteTodo = async (id: number) => {

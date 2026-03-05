@@ -1,7 +1,14 @@
 import { Hono } from "hono";
 import { Client } from "pg";
+import { cors } from "hono/cors";
 
 const app = new Hono<{ Bindings: Env }>();
+
+app.use("/api/*", cors({
+  origin: ["https://adi-task.adi-weiss08.workers.dev", "https://front-app-dd1.pages.dev"],
+  allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+  allowHeaders: ["Content-Type", "Authorization"],
+}));
 
 const getPgClient = async (env: Env) => {
   const client = new Client({
