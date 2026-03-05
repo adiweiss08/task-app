@@ -22,7 +22,7 @@ interface Holiday {
   date: string;
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
+const API_BASE = "https://task-app.adi-weiss08.workers.dev";
 
 export default function BirthdaysPage() {
   const [birthdays, setBirthdays] = useState<Birthday[]>([]);

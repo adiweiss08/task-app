@@ -13,7 +13,7 @@ interface Todo {
 
 const COLORS = ["#0ea5e9", "#6366f1", "#8b5cf6", "#ec4899", "#f43f5e"];
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
+const API_BASE = "https://task-app.adi-weiss08.workers.dev";
 
 export default function TaskInsights() {
   const [todos, setTodos] = useState<Todo[]>([]);

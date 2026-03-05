@@ -29,18 +29,18 @@ interface Todo {
   createdAt: number;
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
+const API_BASE = "https://task-app.adi-weiss08.workers.dev";
 
 function mapApiTodoToUi(todo: any): Todo {
   return {
     id: todo.id,
     title: todo.title,
     completed: Boolean(todo.is_completed),
-    priority: todo.priority,
-    category: todo.category,
+    priority: todo.priority || "medium",
+    category: todo.category || "personal",
     dueDate: todo.due_date,
     imageUrl: todo.image_url ?? null,
-    subtasks: todo.subtasks ?? [],
+    subtasks: Array.isArray(todo.subtasks) ? todo.subtasks : [],
     createdAt: todo.created_at ? new Date(todo.created_at).getTime() : Date.now(),
   };
 }
@@ -147,149 +147,115 @@ export default function HomePage() {
   }, [todos, filter, categoryFilter, searchQuery, sortBy]);
 
   const toggleTodo = async (id: number) => {
-    const todoToToggle = todos.find((t) => t.id === id);
-    if (!todoToToggle) return;
-
-    const newStatus = !todoToToggle.completed;
-
     try {
+      // מוצאים את המשימה מתוך ה-state הנוכחי
+      const todo = todos.find(t => t.id === id);
+      if (!todo) return;
+      const newStatus = !todo.completed;
+
       await fetch(`${API_BASE}/api/todos/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ is_completed: newStatus ? 1 : 0 }),
+        body: JSON.stringify({ is_completed: newStatus }),
       });
 
-      setTodos(todos.map((todo) => (todo.id === id ? { ...todo, completed: newStatus } : todo)));
-    } catch (err) {
-      console.error("Error updating todo status:", err);
-    }
+      // עדכון בטוח שמשתמש ב-prev
+      setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: newStatus } : t));
+    } catch (err) { console.error("Toggle error:", err); }
   };
 
-  const addTodo = () => {
+  const addTodo = async () => {
     if (!newTask.trim()) return;
-
-    const newTodoPayload = {
+    const payload = {
       title: newTask,
       priority: newPriority,
       category: newCategory,
       due_date: newDueDate || null,
       image_url: newImage,
-      subtasks: [] as Subtask[],
+      subtasks: []
     };
 
-    fetch(`${API_BASE}/api/todos`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(newTodoPayload),
-    })
-      .then((res) => res.json())
-      .then((savedTodo) => {
-        const mapped = mapApiTodoToUi(savedTodo);
-        setTodos([mapped, ...todos]);
+    try {
+      const res = await fetch(`${API_BASE}/api/todos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const saved = await res.json();
+      const mapped = mapApiTodoToUi(saved);
 
-        setNewTask("");
-        setNewDueDate("");
-        setNewImage(null);
-        setShowAddForm(false);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = "";
-        }
-      })
-      .catch((err) => console.error("Error adding task:", err));
+      // הוספה לרשימה וניקוי טופס בצורה אטומית
+      setTodos(prev => [mapped, ...prev]);
+      setNewTask("");
+      setNewDueDate("");
+      setNewImage(null);
+      setShowAddForm(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } catch (err) { console.error("Add error:", err); }
   };
 
-  const deleteTodo = (id: number) => {
-    fetch(`${API_BASE}/api/todos/${id}`, {
-      method: 'DELETE',
-    })
-      .then((res) => {
-        if (res.ok) {
-          setTodos(todos.filter((todo) => todo.id !== id));
-        } else {
-          console.error("Failed to delete from server");
-        }
-      })
-      .catch((err) => console.error("Error deleting task:", err));
+  const deleteTodo = async (id: number) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/todos/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setTodos(prev => prev.filter(t => t.id !== id));
+      }
+    } catch (err) { console.error("Delete error:", err); }
   };
 
   const removeImage = async (id: number) => {
     try {
-      // 1. עדכון בשרת
-      await fetch(`${API_BASE}/api/todos/${id}`, {
+      const res = await fetch(`${API_BASE}/api/todos/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image_url: null }),
       });
 
-      // 2. עדכון ב-UI
-      setTodos(todos.map((todo) => (todo.id === id ? { ...todo, imageUrl: null } : todo)));
-    } catch (err) {
-      console.error("Failed to remove image from server:", err);
-    }
+      if (res.ok) {
+        setTodos(prev => prev.map(t => t.id === id ? { ...t, imageUrl: null } : t));
+      }
+    } catch (err) { console.error("Remove image error:", err); }
   };
 
   const addImageToTodo = async (id: number, imageUrl: string) => {
     try {
-      // 1. עדכון בשרת
-      await fetch(`${API_BASE}/api/todos/${id}`, {
+      const res = await fetch(`${API_BASE}/api/todos/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image_url: imageUrl }),
       });
 
-      // 2. עדכון ב-UI
-      setTodos(todos.map((todo) => (todo.id === id ? { ...todo, imageUrl } : todo)));
-    } catch (err) {
-      console.error("Failed to save image to server:", err);
-    }
+      if (res.ok) {
+        setTodos(prev => prev.map(t => t.id === id ? { ...t, imageUrl: imageUrl } : t));
+      }
+    } catch (err) { console.error("Add image error:", err); }
   };
 
-
   const addSubtask = async (todoId: number, title: string) => {
-    const todoToUpdate = todos.find((t) => String(t.id) === String(todoId)); if (!todoToUpdate) {
-      console.error("Debug: Todo not found for ID:", todoId);
-      return;
-    }
-
-    // ודאי שיש מערך subtasks, גם אם הוא לא היה קיים קודם ב-JSON
-    const currentSubtasks = todoToUpdate.subtasks || [];
-
-    const newSubtask: Subtask = {
-      id: Date.now(),
-      title,
-      completed: false,
-    };
-
-    const updatedSubtasks = [...currentSubtasks, newSubtask];
-
     try {
-      const response = await fetch(`${API_BASE}/api/todos/${todoId}`, {
+      const targetTodo = todos.find(t => t.id === todoId);
+      if (!targetTodo) return;
+
+      const newSub = { id: Date.now(), title, completed: false };
+      const updatedSubtasks = [...(targetTodo.subtasks || []), newSub];
+
+      const res = await fetch(`${API_BASE}/api/todos/${todoId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subtasks: updatedSubtasks }),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Server error: ${response.status} - ${errorText}`);
+      if (res.ok) {
+        setTodos(prev => prev.map(t => t.id === todoId ? { ...t, subtasks: updatedSubtasks } : t));
       }
-
-      const savedTodo = await response.json();
-      const mapped = mapApiTodoToUi(savedTodo);
-
-      setTodos((prev) => prev.map((t) => (t.id === todoId ? mapped : t)));
-    } catch (err) {
-      console.error("Debug: Full error details:", err);
-    }
+    } catch (err) { console.error("Add subtask error:", err); }
   };
 
   const toggleSubtask = async (todoId: number, subtaskId: number) => {
-    const todoToUpdate = todos.find(t => t.id === todoId);
-    if (!todoToUpdate) return;
+    const targetTodo = todos.find(t => t.id === todoId);
+    if (!targetTodo) return;
 
-    const updatedSubtasks = todoToUpdate.subtasks.map((st) =>
+    const updatedSubtasks = targetTodo.subtasks.map((st) =>
       st.id === subtaskId ? { ...st, completed: !st.completed } : st
     );
 
@@ -300,57 +266,34 @@ export default function HomePage() {
         body: JSON.stringify({ subtasks: updatedSubtasks }),
       });
 
-      setTodos(todos.map((todo) =>
-        todo.id === todoId ? { ...todo, subtasks: updatedSubtasks } : todo
-      ));
-    } catch (err) {
-      console.error("Failed to update subtask on server:", err);
-    }
+      setTodos(prev => prev.map(t => t.id === todoId ? { ...t, subtasks: updatedSubtasks } : t));
+    } catch (err) { console.error("Toggle subtask error:", err); }
   };
 
-  const deleteSubtask = (todoId: number, subtaskId: number) => {
-    const targetTodo = todos.find((t) => t.id === todoId);
+  const deleteSubtask = async (todoId: number, subtaskId: number) => {
+    const targetTodo = todos.find(t => t.id === todoId);
     if (!targetTodo) return;
 
-    const updatedSubtasks = targetTodo.subtasks.filter((st) => st.id !== subtaskId);
+    const updatedSubtasks = targetTodo.subtasks.filter(st => st.id !== subtaskId);
 
-    fetch(`${API_BASE}/api/todos/${todoId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ subtasks: updatedSubtasks }),
-    })
-      .then((res) => {
-        if (!res.ok) {
-          return res.text().then((text) => {
-            throw new Error(text || `Failed to update subtasks for todo ${todoId}`);
-          });
-        }
-        setTodos(todos.map((todo) => {
-          if (todo.id === todoId) {
-            return {
-              ...todo,
-              subtasks: updatedSubtasks,
-            };
-          }
-          return todo;
-        }));
-      })
-      .catch((err) => {
-        console.error("Failed to delete subtask on server:", err);
+    try {
+      const res = await fetch(`${API_BASE}/api/todos/${todoId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subtasks: updatedSubtasks }),
       });
+
+      if (res.ok) {
+        setTodos(prev => prev.map(t => t.id === todoId ? { ...t, subtasks: updatedSubtasks } : t));
+      }
+    } catch (err) { console.error("Delete subtask error:", err); }
   };
 
   const clearCompleted = () => {
-    const completedTodos = todos.filter(t => t.completed);
-
-    completedTodos.forEach(todo => {
-      deleteTodo(todo.id);
-    });
+    const completedIds = todos.filter(t => t.completed).map(t => t.id);
+    completedIds.forEach(id => deleteTodo(id));
   };
 
-  const completedCount = todos.filter((t) => t.completed).length;
-  const totalCount = todos.length;
-  const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -372,7 +315,11 @@ export default function HomePage() {
     };
     reader.readAsDataURL(file);
   };
-  
+
+  const completedCount = todos.filter((t) => t.completed).length;
+  const totalCount = todos.length;
+  const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-fuchsia-50">
       <div className="mx-auto max-w-5xl px-4 py-12">
@@ -454,21 +401,19 @@ export default function HomePage() {
             <div className="flex items-center gap-1 rounded-xl border border-pink-200 bg-white/80 p-1">
               <button
                 onClick={() => setViewMode("grid")}
-                className={`px-3 py-1 text-xs font-medium rounded-lg ${
-                  viewMode === "grid"
-                    ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-sm"
-                    : "text-muted-foreground hover:bg-pink-50"
-                }`}
+                className={`px-3 py-1 text-xs font-medium rounded-lg ${viewMode === "grid"
+                  ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-sm"
+                  : "text-muted-foreground hover:bg-pink-50"
+                  }`}
               >
                 Grid
               </button>
               <button
                 onClick={() => setViewMode("list")}
-                className={`px-3 py-1 text-xs font-medium rounded-lg ${
-                  viewMode === "list"
-                    ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-sm"
-                    : "text-muted-foreground hover:bg-pink-50"
-                }`}
+                className={`px-3 py-1 text-xs font-medium rounded-lg ${viewMode === "list"
+                  ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-sm"
+                  : "text-muted-foreground hover:bg-pink-50"
+                  }`}
               >
                 List
               </button>

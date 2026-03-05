@@ -1,38 +1,21 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "019c9f72-df0e-7aca-9247-cb7e70f8a959",
-  "main": "./src/worker/index.ts",
-  "compatibility_date": "2025-06-17",
-  "compatibility_flags": ["nodejs_compat"],
-  "observability": {
-    "enabled": true
-  },
-  "upload_source_maps": true,
+  "name": "task-app",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-03-05",
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application"
   },
-  "d1_databases": [
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "hyperdrive": [
     {
-      "binding": "DB",
-      "database_name": "019c9f72-df0e-7aca-9247-cb7e70f8a959",
-      "database_id": "019c9f72-df0e-7aca-9247-cb7e70f8a959"
+      "binding": "HYPERDRIVE",
+      "id": "a7e8730542bc400baf796455f7820ed1"
     }
   ],
-	  "r2_buckets": [
-	    {
-	      "binding": "R2_BUCKET",
-	      "bucket_name": "019c9f72-df0e-7aca-9247-cb7e70f8a959"
-	    }
-	  ],
-	  "services": [
-	    {
-	      "binding": "EMAILS",
-	      "service": "emails-service",
-	      "entrypoint": "EmailService",
-	      "props": {
-	        "appId": "019c9f72-df0e-7aca-9247-cb7e70f8a959"
-	      }
-	    }
-	  ]
-	}
+  "vars": {
+    "DATABASE_URL": "postgresql://neondb_owner:npg_y9HVIo7iBvuO@ep-crimson-base-aiprhsen-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require"
+  }
+}

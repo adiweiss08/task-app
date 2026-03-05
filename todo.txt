@@ -6,3 +6,19 @@ add new category for the tasks is not workign
 
 how to run
 npx wrangler dev
+npm run dev
+
+on new computer
+npm run build
+
+
+Created new Hyperdrive PostgreSQL co
+nfig: a7e8730542bc400baf796455f7820ed1To access your new Hyperdrive Config in your Worker, add the following snippet to your configuration file:        
+{
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "a7e8730542bc400baf796455f7820ed1"
+    }
+  ]
+}

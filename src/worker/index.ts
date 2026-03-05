@@ -1,176 +1,71 @@
 import { Hono } from "hono";
-import {
-  CreateBirthdaySchema,
-  CreateTodoSchema,
-  UpdateTodoSchema,
-  Birthday,
-  Todo,
-} from "../shared/types";
+import { Client } from "pg";
 
 const app = new Hono<{ Bindings: Env }>();
 
-// Get all todos
-app.get("/api/todos", async (c) => {
-  const result = await c.env.DB.prepare(
-    "SELECT * FROM todos ORDER BY created_at DESC"
-  ).all<any>();
+const getPgClient = async (env: Env) => {
+  const client = new Client({
+    connectionString: env.HYPERDRIVE?.connectionString || env.DATABASE_URL,
+  });
+  await client.connect();
+  return client;
+};
 
-  const todos = result.results.map((row) => ({
-    ...row,
-    subtasks: row.subtasks ? JSON.parse(row.subtasks as string) : [],
-  })) as Todo[];
-
-  return c.json(todos);
+// פונקציית עזר קריטית: מוודאת שהנתונים חוזרים ל-React בפורמט הנכון
+const parseTodo = (row: any) => ({
+  ...row,
+  is_completed: Boolean(row.is_completed),
+  // וידוא שה-subtasks הם תמיד מערך (Array) ולא מחרוזת
+  subtasks: typeof row.subtasks === 'string' ? JSON.parse(row.subtasks) : (row.subtasks || [])
 });
 
-// Create a todo
+app.get("/api/todos", async (c) => {
+  const client = await getPgClient(c.env);
+  try {
+    const result = await client.query("SELECT * FROM todos ORDER BY created_at DESC");
+    return c.json(result.rows.map(parseTodo));
+  } finally { await client.end(); }
+});
+
 app.post("/api/todos", async (c) => {
   const body = await c.req.json();
-  const parsed = CreateTodoSchema.safeParse(body);
-
-  if (!parsed.success) {
-    return c.json({ error: "Invalid input", details: parsed.error.issues }, 400);
-  }
-
-  const { title, priority, category, due_date, image_url, subtasks } = parsed.data;
-
-  const result = await c.env.DB.prepare(
-    "INSERT INTO todos (title, priority, category, due_date, image_url, subtasks) VALUES (?, ?, ?, ?, ?, ?) RETURNING *"
-  )
-    .bind(
-      title,
-      priority,
-      category,
-      due_date || null,
-      image_url || null,
-      JSON.stringify(subtasks ?? [])
-    )
-    .first<any>();
-
-  const todo: Todo = {
-    ...result,
-    subtasks: result.subtasks ? JSON.parse(result.subtasks as string) : [],
-  };
-
-  return c.json(todo, 201);
+  const client = await getPgClient(c.env);
+  try {
+    const result = await client.query(
+      "INSERT INTO todos (title, priority, category, subtasks) VALUES ($1, $2, $3, $4) RETURNING *",
+      [body.title, body.priority || 'medium', body.category || 'personal', JSON.stringify(body.subtasks || [])]
+    );
+    return c.json(parseTodo(result.rows[0]), 201);
+  } finally { await client.end(); }
 });
 
-// Update a todo
 app.patch("/api/todos/:id", async (c) => {
-  const id = parseInt(c.req.param("id"));
+  const id = c.req.param("id");
   const body = await c.req.json();
-  const parsed = UpdateTodoSchema.safeParse(body);
+  const client = await getPgClient(c.env);
+  try {
+    const fields = [];
+    const values = [];
+    let idx = 1;
 
-  if (!parsed.success) {
-    return c.json({ error: "Invalid input", details: parsed.error.issues }, 400);
-  }
+    if (body.title !== undefined) { fields.push(`title = $${idx++}`); values.push(body.title); }
+    if (body.image_url !== undefined) { fields.push(`image_url = $${idx++}`); values.push(body.image_url); }
+    if (body.is_completed !== undefined) { fields.push(`is_completed = $${idx++}`); values.push(body.is_completed); }
+    if (body.subtasks !== undefined) { fields.push(`subtasks = $${idx++}`); values.push(JSON.stringify(body.subtasks)); }
 
-  const updates = parsed.data;
-  const fields: string[] = [];
-  const values: (string | number | null)[] = [];
-
-  if (updates.title !== undefined) {
-    fields.push("title = ?");
-    values.push(updates.title);
-  }
-  if (updates.is_completed !== undefined) {
-    fields.push("is_completed = ?");
-    values.push(updates.is_completed);
-  }
-  if (updates.priority !== undefined) {
-    fields.push("priority = ?");
-    values.push(updates.priority);
-  }
-  if (updates.category !== undefined) {
-    fields.push("category = ?");
-    values.push(updates.category);
-  }
-  if (updates.due_date !== undefined) {
-    fields.push("due_date = ?");
-    values.push(updates.due_date);
-  }
-  if (updates.image_url !== undefined) {
-    fields.push("image_url = ?");
-    values.push(updates.image_url);
-  }
-  if (updates.subtasks !== undefined) {
-    fields.push("subtasks = ?");
-    values.push(JSON.stringify(updates.subtasks));
-  }
-
-  if (fields.length === 0) {
-    return c.json({ error: "No fields to update" }, 400);
-  }
-
-  fields.push("updated_at = CURRENT_TIMESTAMP");
-  values.push(id);
-
-  const result = await c.env.DB.prepare(
-    `UPDATE todos SET ${fields.join(", ")} WHERE id = ? RETURNING *`
-  )
-    .bind(...values)
-    .first<any>();
-
-  if (!result) {
-    return c.json({ error: "Todo not found" }, 404);
-  }
-
-  const todo: Todo = {
-    ...result,
-    subtasks: result.subtasks ? JSON.parse(result.subtasks as string) : [],
-  };
-
-  return c.json(todo);
-});
-
-// Delete a todo
-app.delete("/api/todos/:id", async (c) => {
-  const id = parseInt(c.req.param("id"));
-
-  await c.env.DB.prepare("DELETE FROM todos WHERE id = ?").bind(id).run();
-
-  return c.json({ success: true });
-});
-
-// Birthdays / events CRUD
-app.get("/api/birthdays", async (c) => {
-  const result = await c.env.DB.prepare(
-    "SELECT * FROM birthdays ORDER BY date ASC"
-  ).all<Birthday>();
-  const withType = result.results.map((row: any) => ({
-    ...row,
-    type: row.type ?? "birthday",
-  })) as Birthday[];
-
-  return c.json(withType);
-});
-
-app.post("/api/birthdays", async (c) => {
-  const body = await c.req.json();
-  const parsed = CreateBirthdaySchema.safeParse(body);
-
-  if (!parsed.success) {
-    return c.json({ error: "Invalid input", details: parsed.error.issues }, 400);
-  }
-
-  const { name, date, type } = parsed.data;
-  const effectiveType = type ?? "birthday";
-
-  const result = await c.env.DB.prepare(
-    "INSERT INTO birthdays (name, date, type) VALUES (?, ?, ?) RETURNING *"
-  )
-    .bind(name, date, effectiveType)
-    .first<Birthday>();
-
-  return c.json(result, 201);
-});
-
-app.delete("/api/birthdays/:id", async (c) => {
-  const id = parseInt(c.req.param("id"));
-
-  await c.env.DB.prepare("DELETE FROM birthdays WHERE id = ?").bind(id).run();
-
-  return c.json({ success: true });
+    if (fields.length === 0) return c.json({ error: "No fields to update" }, 400);
+    values.push(id);
+    
+    const result = await client.query(
+      `UPDATE todos SET ${fields.join(", ")}, updated_at = CURRENT_TIMESTAMP WHERE id = $${idx} RETURNING *`,
+      values
+    );
+    
+    if (result.rows.length === 0) return c.json({ error: "Not found" }, 404);
+    return c.json(parseTodo(result.rows[0]));
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  } finally { await client.end(); }
 });
 
 export default app;
