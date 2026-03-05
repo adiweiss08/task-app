@@ -1,0 +1,2 @@
+ALTER TABLE birthdays ADD COLUMN type TEXT NOT NULL DEFAULT 'birthday';
+

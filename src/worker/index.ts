@@ -132,13 +132,17 @@ app.delete("/api/todos/:id", async (c) => {
   return c.json({ success: true });
 });
 
-// Birthdays CRUD
+// Birthdays / events CRUD
 app.get("/api/birthdays", async (c) => {
   const result = await c.env.DB.prepare(
     "SELECT * FROM birthdays ORDER BY date ASC"
   ).all<Birthday>();
+  const withType = result.results.map((row: any) => ({
+    ...row,
+    type: row.type ?? "birthday",
+  })) as Birthday[];
 
-  return c.json(result.results);
+  return c.json(withType);
 });
 
 app.post("/api/birthdays", async (c) => {
@@ -149,12 +153,13 @@ app.post("/api/birthdays", async (c) => {
     return c.json({ error: "Invalid input", details: parsed.error.issues }, 400);
   }
 
-  const { name, date } = parsed.data;
+  const { name, date, type } = parsed.data;
+  const effectiveType = type ?? "birthday";
 
   const result = await c.env.DB.prepare(
-    "INSERT INTO birthdays (name, date) VALUES (?, ?) RETURNING *"
+    "INSERT INTO birthdays (name, date, type) VALUES (?, ?, ?) RETURNING *"
   )
-    .bind(name, date)
+    .bind(name, date, effectiveType)
     .first<Birthday>();
 
   return c.json(result, 201);

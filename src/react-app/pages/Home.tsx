@@ -76,6 +76,7 @@ export default function HomePage() {
   const [categoryFilter, setCategoryFilter] = useState<Category | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [newTask, setNewTask] = useState("");
   const [newPriority, setNewPriority] = useState<Priority>("medium");
   const [newCategory, setNewCategory] = useState<Category>("personal");
@@ -85,6 +86,25 @@ export default function HomePage() {
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [categories, setCategories] = useState(baseCategories);
+
+  useEffect(() => {
+    try {
+      const savedView = window.localStorage.getItem("mytasks_view_mode");
+      if (savedView === "grid" || savedView === "list") {
+        setViewMode(savedView);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("mytasks_view_mode", viewMode);
+    } catch {
+      // ignore
+    }
+  }, [viewMode]);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/todos`)
@@ -334,14 +354,23 @@ export default function HomePage() {
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        // כאן אנחנו מעדכנים את ה-State שבו addTodo משתמשת
-        setNewImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // 5MB limit
+    const maxSizeBytes = 5 * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      window.alert("The image is too big. Please choose an image smaller than 5MB.");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
     }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setNewImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
   
   return (
@@ -397,8 +426,8 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* Search & Sort */}
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+        {/* Search, Sort & View mode */}
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -408,18 +437,42 @@ export default function HomePage() {
               className="pl-10 bg-white/80 border-pink-200 focus-visible:ring-pink-300"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="rounded-lg border border-pink-200 bg-white/80 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
-            >
-              <option value="newest">Newest first</option>
-              <option value="oldest">Oldest first</option>
-              <option value="priority">By priority</option>
-              <option value="dueDate">By due date</option>
-            </select>
+          <div className="flex items-center gap-3 mt-1 sm:mt-0">
+            <div className="flex items-center gap-2">
+              <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                className="rounded-lg border border-pink-200 bg-white/80 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
+              >
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="priority">By priority</option>
+                <option value="dueDate">By due date</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-1 rounded-xl border border-pink-200 bg-white/80 p-1">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`px-3 py-1 text-xs font-medium rounded-lg ${
+                  viewMode === "grid"
+                    ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-sm"
+                    : "text-muted-foreground hover:bg-pink-50"
+                }`}
+              >
+                Grid
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`px-3 py-1 text-xs font-medium rounded-lg ${
+                  viewMode === "list"
+                    ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-sm"
+                    : "text-muted-foreground hover:bg-pink-50"
+                }`}
+              >
+                List
+              </button>
+            </div>
           </div>
         </div>
 
@@ -600,7 +653,13 @@ export default function HomePage() {
         )}
 
         {/* Task List */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          className={
+            viewMode === "grid"
+              ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+              : "flex flex-col gap-3"
+          }
+        >
           {filteredAndSortedTodos.length === 0 ? (
             <div className="py-16 text-center">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-pink-100">

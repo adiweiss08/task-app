@@ -2,6 +2,7 @@ import z from "zod";
 
 export const PrioritySchema = z.enum(["low", "medium", "high"]);
 export const CategorySchema = z.enum(["work", "personal", "health", "shopping", "other"]);
+export const EventTypeSchema = z.enum(["birthday", "holiday", "other"]);
 
 export const SubtaskSchema = z.object({
   id: z.number(),
@@ -45,15 +46,18 @@ export const BirthdaySchema = z.object({
   id: z.number(),
   name: z.string(),
   date: z.string(),
+  type: EventTypeSchema.default("birthday"),
 });
 
 export const CreateBirthdaySchema = z.object({
   name: z.string().min(1),
   date: z.string(),
+  type: EventTypeSchema.optional(),
 });
 
 export type Priority = z.infer<typeof PrioritySchema>;
 export type Category = z.infer<typeof CategorySchema>;
+export type EventType = z.infer<typeof EventTypeSchema>;
 export type Subtask = z.infer<typeof SubtaskSchema>;
 export type Todo = z.infer<typeof TodoSchema>;
 export type CreateTodo = z.infer<typeof CreateTodoSchema>;
