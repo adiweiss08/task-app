@@ -21,6 +21,8 @@ interface Holiday {
   date: string;
 }
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
+
 export default function BirthdaysPage() {
   const [birthdays, setBirthdays] = useState<Birthday[]>([]);
   const [apiHolidays, setApiHolidays] = useState<Holiday[]>([]);
@@ -36,14 +38,22 @@ export default function BirthdaysPage() {
   const [year, setYear] = useState(today.getFullYear());
 
   useEffect(() => {
-    fetch('http://localhost:5000/birthdays')
+    fetch(`${API_BASE}/api/birthdays`)
       .then(res => res.json())
       .then(data => setBirthdays(data))
       .catch(err => console.error("Error loading birthdays:", err));
 
-    fetch('http://localhost:5000/tasks')
+    fetch(`${API_BASE}/api/todos`)
       .then(res => res.json())
-      .then(data => setTasks(data))
+      .then((data) => {
+        const mapped = (data as any[]).map((t) => ({
+          id: t.id,
+          title: t.title,
+          dueDate: t.due_date ?? null,
+          completed: Boolean(t.is_completed),
+        })) as TodoForCalendar[];
+        setTasks(mapped);
+      })
       .catch(err => console.error("Error loading tasks:", err));
   }, []);
 
@@ -113,7 +123,7 @@ export default function BirthdaysPage() {
       date: date,
     };
 
-    fetch('http://localhost:5000/birthdays', {
+    fetch(`${API_BASE}/api/birthdays`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newBirthday),
@@ -128,7 +138,7 @@ export default function BirthdaysPage() {
   };
 
   const deleteBirthday = (id: number) => {
-    fetch(`http://localhost:5000/birthdays/${id}`, {
+    fetch(`${API_BASE}/api/birthdays/${id}`, {
       method: 'DELETE',
     })
       .then((res) => {

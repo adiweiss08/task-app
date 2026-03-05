@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Plus, Calendar, Check, Flag, CheckCircle2, Circle, Search, X, Tag, Clock, ArrowUpDown, StickyNote, ImagePlus, Trash2, ListTodo, Square, CheckSquare, CalendarDays } from "lucide-react";
+import { Plus, Calendar, Flag, CheckCircle2, Circle, Search, X, Tag, Clock, ArrowUpDown, StickyNote, ImagePlus, Trash2, ListTodo, Square, CheckSquare, CalendarDays } from "lucide-react";
 import { Link } from "react-router";
 import { BarChart3 } from "lucide-react";
 import { Button } from "@/react-app/components/ui/button";
@@ -27,6 +27,22 @@ interface Todo {
   imageUrl: string | null;
   subtasks: Subtask[];
   createdAt: number;
+}
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
+
+function mapApiTodoToUi(todo: any): Todo {
+  return {
+    id: todo.id,
+    title: todo.title,
+    completed: Boolean(todo.is_completed),
+    priority: todo.priority,
+    category: todo.category,
+    dueDate: todo.due_date,
+    imageUrl: todo.image_url ?? null,
+    subtasks: todo.subtasks ?? [],
+    createdAt: todo.created_at ? new Date(todo.created_at).getTime() : Date.now(),
+  };
 }
 
 const baseCategories: { value: Category; label: string; color: string; bg: string }[] = [
@@ -69,14 +85,13 @@ export default function HomePage() {
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [categories, setCategories] = useState(baseCategories);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('http://localhost:5000/tasks')
+    fetch(`${API_BASE}/api/todos`)
       .then((res) => res.json())
       .then((data) => {
-        setTodos(data);
+        const mapped = (data as any[]).map(mapApiTodoToUi);
+        setTodos(mapped);
       })
       .catch((err) => console.error("Error fetching tasks:", err));
   }, []);
@@ -118,10 +133,10 @@ export default function HomePage() {
     const newStatus = !todoToToggle.completed;
 
     try {
-      await fetch(`http://localhost:5000/tasks/${id}`, {
+      await fetch(`${API_BASE}/api/todos/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completed: newStatus }),
+        body: JSON.stringify({ is_completed: newStatus ? 1 : 0 }),
       });
 
       setTodos(todos.map((todo) => (todo.id === id ? { ...todo, completed: newStatus } : todo)));
@@ -133,27 +148,26 @@ export default function HomePage() {
   const addTodo = () => {
     if (!newTask.trim()) return;
 
-    const newTodo = {
+    const newTodoPayload = {
       title: newTask,
-      completed: false,
       priority: newPriority,
       category: newCategory,
-      dueDate: newDueDate || null,
-      imageUrl: newImage,
-      subtasks: [],
-      createdAt: Date.now(),
+      due_date: newDueDate || null,
+      image_url: newImage,
+      subtasks: [] as Subtask[],
     };
 
-    fetch('http://localhost:5000/tasks', {
+    fetch(`${API_BASE}/api/todos`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(newTodo),
+      body: JSON.stringify(newTodoPayload),
     })
       .then((res) => res.json())
       .then((savedTodo) => {
-        setTodos([savedTodo, ...todos]);
+        const mapped = mapApiTodoToUi(savedTodo);
+        setTodos([mapped, ...todos]);
 
         setNewTask("");
         setNewDueDate("");
@@ -167,7 +181,7 @@ export default function HomePage() {
   };
 
   const deleteTodo = (id: number) => {
-    fetch(`http://localhost:5000/tasks/${id}`, {
+    fetch(`${API_BASE}/api/todos/${id}`, {
       method: 'DELETE',
     })
       .then((res) => {
@@ -183,10 +197,10 @@ export default function HomePage() {
   const removeImage = async (id: number) => {
     try {
       // 1. עדכון בשרת
-      await fetch(`http://localhost:5000/tasks/${id}`, {
+      await fetch(`${API_BASE}/api/todos/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl: null }),
+        body: JSON.stringify({ image_url: null }),
       });
 
       // 2. עדכון ב-UI
@@ -199,10 +213,10 @@ export default function HomePage() {
   const addImageToTodo = async (id: number, imageUrl: string) => {
     try {
       // 1. עדכון בשרת
-      await fetch(`http://localhost:5000/tasks/${id}`, {
+      await fetch(`${API_BASE}/api/todos/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl: imageUrl }),
+        body: JSON.stringify({ image_url: imageUrl }),
       });
 
       // 2. עדכון ב-UI
@@ -228,18 +242,13 @@ export default function HomePage() {
       completed: false,
     };
 
-    const updatedTodo = {
-      ...todoToUpdate,
-      subtasks: [...currentSubtasks, newSubtask],
-    };
-
-    console.log("Debug: Sending updated todo to server:", updatedTodo);
+    const updatedSubtasks = [...currentSubtasks, newSubtask];
 
     try {
-      const response = await fetch(`http://localhost:5000/tasks/${todoId}`, {
-        method: "PUT",
+      const response = await fetch(`${API_BASE}/api/todos/${todoId}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedTodo),
+        body: JSON.stringify({ subtasks: updatedSubtasks }),
       });
 
       if (!response.ok) {
@@ -248,9 +257,9 @@ export default function HomePage() {
       }
 
       const savedTodo = await response.json();
-      console.log("Debug: Server saved successfully:", savedTodo);
+      const mapped = mapApiTodoToUi(savedTodo);
 
-      setTodos((prev) => prev.map((t) => (t.id === todoId ? savedTodo : t)));
+      setTodos((prev) => prev.map((t) => (t.id === todoId ? mapped : t)));
     } catch (err) {
       console.error("Debug: Full error details:", err);
     }
@@ -265,7 +274,7 @@ export default function HomePage() {
     );
 
     try {
-      await fetch(`http://localhost:5000/tasks/${todoId}`, {
+      await fetch(`${API_BASE}/api/todos/${todoId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subtasks: updatedSubtasks }),
@@ -280,15 +289,35 @@ export default function HomePage() {
   };
 
   const deleteSubtask = (todoId: number, subtaskId: number) => {
-    setTodos(todos.map((todo) => {
-      if (todo.id === todoId) {
-        return {
-          ...todo,
-          subtasks: todo.subtasks.filter((st) => st.id !== subtaskId),
-        };
-      }
-      return todo;
-    }));
+    const targetTodo = todos.find((t) => t.id === todoId);
+    if (!targetTodo) return;
+
+    const updatedSubtasks = targetTodo.subtasks.filter((st) => st.id !== subtaskId);
+
+    fetch(`${API_BASE}/api/todos/${todoId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subtasks: updatedSubtasks }),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          return res.text().then((text) => {
+            throw new Error(text || `Failed to update subtasks for todo ${todoId}`);
+          });
+        }
+        setTodos(todos.map((todo) => {
+          if (todo.id === todoId) {
+            return {
+              ...todo,
+              subtasks: updatedSubtasks,
+            };
+          }
+          return todo;
+        }));
+      })
+      .catch((err) => {
+        console.error("Failed to delete subtask on server:", err);
+      });
   };
 
   const clearCompleted = () => {

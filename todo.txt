@@ -2,7 +2,9 @@ change the color in the calander
 make a list f the tasks
 make the birthday add to add event by type
 when addding new task with image it is not workign
+add new category for the tasks is not workign
 
 howe to run
 npx json-server --watch db.json --port 5000 
 npm run devnpm run dev
+
