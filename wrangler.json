@@ -1,5 +1,5 @@
 {
-  "name": "task-app",
+  "name": "adi-task",
   "main": "src/worker/index.ts",
   "compatibility_date": "2026-03-05",
   "assets": {
