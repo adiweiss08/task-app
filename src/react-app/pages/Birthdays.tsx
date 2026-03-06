@@ -22,8 +22,10 @@ interface Holiday {
   date: string;
 }
 
-const API_BASE = "https://task-app.adi-weiss08.workers.dev";
-
+const API_BASE = window.location.hostname === "localhost" 
+  ? "http://localhost:8787" 
+  : "https://task-app.adi-weiss08.workers.dev";
+  
 export default function BirthdaysPage() {
   const [birthdays, setBirthdays] = useState<Birthday[]>([]);
   const [apiHolidays, setApiHolidays] = useState<Holiday[]>([]);
@@ -41,12 +43,12 @@ export default function BirthdaysPage() {
   const [showHolidaysList, setShowHolidaysList] = useState(true);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/birthdays`)
+    fetch(`${API_BASE}/api/birthdays`, { cache: "no-store" })
       .then(res => res.json())
       .then(data => setBirthdays(data))
       .catch(err => console.error("Error loading birthdays:", err));
 
-    fetch(`${API_BASE}/api/todos`)
+    fetch(`${API_BASE}/api/todos`, { cache: "no-store" })
       .then(res => res.json())
       .then((data) => {
         const mapped = (data as any[]).map((t) => ({
@@ -147,9 +149,10 @@ export default function BirthdaysPage() {
     };
 
     fetch(`${API_BASE}/api/birthdays`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newBirthday),
+      cache: "no-store",
     })
       .then(res => res.json())
       .then(savedBirthday => {
@@ -163,7 +166,8 @@ export default function BirthdaysPage() {
 
   const deleteBirthday = (id: number) => {
     fetch(`${API_BASE}/api/birthdays/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
+      cache: "no-store",
     })
       .then((res) => {
         if (res.ok) {

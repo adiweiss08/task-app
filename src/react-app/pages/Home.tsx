@@ -29,7 +29,9 @@ interface Todo {
   createdAt: number;
 }
 
-const API_BASE = "https://task-app.adi-weiss08.workers.dev";
+const API_BASE = window.location.hostname === "localhost"
+  ? "http://localhost:8787"
+  : "https://task-app.adi-weiss08.workers.dev";
 
 function mapApiTodoToUi(todo: any): Todo {
   return {
@@ -106,14 +108,28 @@ export default function HomePage() {
     }
   }, [viewMode]);
 
+  const refetchTodos = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/todos`, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch");
+
+      const data = await res.json();
+      const mapped = (data as any[]).map(mapApiTodoToUi);
+      setTodos(mapped);
+    } catch (err) {
+      console.error("Error fetching tasks:", err);
+    }
+  };
+
   useEffect(() => {
-    fetch(`${API_BASE}/api/todos`)
-      .then((res) => res.json())
-      .then((data) => {
-        const mapped = (data as any[]).map(mapApiTodoToUi);
-        setTodos(mapped);
-      })
-      .catch((err) => console.error("Error fetching tasks:", err));
+    refetchTodos();
   }, []);
 
   const filteredAndSortedTodos = useMemo(() => {
@@ -148,7 +164,6 @@ export default function HomePage() {
 
   const toggleTodo = async (id: number) => {
     try {
-      // מוצאים את המשימה מתוך ה-state הנוכחי
       const todo = todos.find(t => t.id === id);
       if (!todo) return;
       const newStatus = !todo.completed;
@@ -157,26 +172,28 @@ export default function HomePage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_completed: newStatus }),
+        cache: "no-store",
       });
 
-      // עדכון בטוח שמשתמש ב-prev
       setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: newStatus } : t));
+      await refetchTodos();
     } catch (err) { console.error("Toggle error:", err); }
   };
+
   const addTodo = async (title: string) => {
+    if (!title || !title.trim()) return;
+
     try {
       const res = await fetch(`${API_BASE}/api/todos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, subtasks: [] }),
+        body: JSON.stringify({ title: title.trim(), subtasks: [] }),
+        cache: "no-store",
       });
-  
+
       if (res.ok) {
-        const newTodoRaw = await res.json();
-        const newTodo = mapApiTodoToUi(newTodoRaw);
-        
-        // העדכון הקריטי של ה-State שגורם למסך להשתנות מיד
-        setTodos(prev => [newTodo, ...prev]);
+        setNewTask("");
+        await refetchTodos();
       }
     } catch (err) {
       console.error("Error adding todo:", err);
@@ -185,11 +202,24 @@ export default function HomePage() {
 
   const deleteTodo = async (id: number) => {
     try {
-      const res = await fetch(`${API_BASE}/api/todos/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setTodos(prev => prev.filter(t => t.id !== id));
+      // 1. קודם כל מוחקים מהמסך מיד
+      setTodos(prev => prev.filter(t => t.id !== id));
+
+      const res = await fetch(`${API_BASE}/api/todos/${id}`, {
+        method: "DELETE",
+        headers: { "Cache-Control": "no-cache" }
+      });
+
+      if (!res.ok) {
+        // רק אם הייתה שגיאה אמיתית, אנחנו מחזירים את המצב לקדמותו
+        console.error("Server failed to delete");
+        await refetchTodos();
       }
-    } catch (err) { console.error("Delete error:", err); }
+      // לא קוראים ל-refetchTodos() אם הכל עבר בשלום!
+    } catch (err) {
+      console.error("Delete error:", err);
+      await refetchTodos();
+    }
   };
 
   const removeImage = async (id: number) => {
@@ -198,10 +228,12 @@ export default function HomePage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image_url: null }),
+        cache: "no-store",
       });
 
       if (res.ok) {
         setTodos(prev => prev.map(t => t.id === id ? { ...t, imageUrl: null } : t));
+        await refetchTodos();
       }
     } catch (err) { console.error("Remove image error:", err); }
   };
@@ -212,10 +244,12 @@ export default function HomePage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image_url: imageUrl }),
+        cache: "no-store",
       });
 
       if (res.ok) {
         setTodos(prev => prev.map(t => t.id === id ? { ...t, imageUrl: imageUrl } : t));
+        await refetchTodos();
       }
     } catch (err) { console.error("Add image error:", err); }
   };
@@ -232,31 +266,49 @@ export default function HomePage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subtasks: updatedSubtasks }),
+        cache: "no-store",
       });
 
       if (res.ok) {
         setTodos(prev => prev.map(t => t.id === todoId ? { ...t, subtasks: updatedSubtasks } : t));
+        await refetchTodos();
       }
     } catch (err) { console.error("Add subtask error:", err); }
   };
 
-  const toggleSubtask = async (todoId: number, subtaskId: number) => {
-    const targetTodo = todos.find(t => t.id === todoId);
-    if (!targetTodo) return;
+  const toggleSubtask = async (todoId: number, subtaskId: string | number) => {
+    setTodos(prevTodos => prevTodos.map(todo => {
+      if (todo.id === todoId) {
+        // מוצאים את ה-subtask הספציפי לפי ה-ID שלו במקום לפי אינדקס
+        const newSubtasks = todo.subtasks.map(st => {
+          if (st.id === subtaskId) {
+            return { ...st, completed: !st.completed };
+          }
+          return st;
+        });
+        return { ...todo, subtasks: newSubtasks };
+      }
+      return todo;
+    }));
 
-    const updatedSubtasks = targetTodo.subtasks.map((st) =>
-      st.id === subtaskId ? { ...st, completed: !st.completed } : st
-    );
-
+    // שליחה לשרת (לוגיקה דומה)
     try {
+      const todo = todos.find(t => t.id === todoId);
+      if (!todo) return;
+
+      const updatedSubtasks = todo.subtasks.map(st =>
+        st.id === subtaskId ? { ...st, completed: !st.completed } : st
+      );
+
       await fetch(`${API_BASE}/api/todos/${todoId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subtasks: updatedSubtasks }),
       });
-
-      setTodos(prev => prev.map(t => t.id === todoId ? { ...t, subtasks: updatedSubtasks } : t));
-    } catch (err) { console.error("Toggle subtask error:", err); }
+    } catch (err) {
+      console.error("Update failed", err);
+      await refetchTodos();
+    }
   };
 
   const deleteSubtask = async (todoId: number, subtaskId: number) => {
@@ -270,10 +322,12 @@ export default function HomePage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subtasks: updatedSubtasks }),
+        cache: "no-store",
       });
 
       if (res.ok) {
         setTodos(prev => prev.map(t => t.id === todoId ? { ...t, subtasks: updatedSubtasks } : t));
+        await refetchTodos();
       }
     } catch (err) { console.error("Delete subtask error:", err); }
   };
@@ -468,7 +522,7 @@ export default function HomePage() {
               placeholder="What needs to be done?"
               value={newTask}
               onChange={(e) => setNewTask(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addTodo()}
+              onKeyDown={(e) => e.key === "Enter" && newTask.trim() && addTodo(newTask)}
               autoFocus
               className="mb-4 border-0 bg-transparent px-0 text-lg font-medium placeholder:text-muted-foreground/50 focus-visible:ring-0"
             />
@@ -575,7 +629,7 @@ export default function HomePage() {
                 </Button>
                 <Button
                   size="sm"
-                  onClick={addTodo}
+                  onClick={() => addTodo(newTask)}
                   disabled={!newTask.trim()}
                   className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600"
                 >

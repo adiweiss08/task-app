@@ -13,13 +13,15 @@ interface Todo {
 
 const COLORS = ["#0ea5e9", "#6366f1", "#8b5cf6", "#ec4899", "#f43f5e"];
 
-const API_BASE = "https://task-app.adi-weiss08.workers.dev";
-
+const API_BASE = window.location.hostname === "localhost" 
+  ? "http://localhost:8787" 
+  : "https://task-app.adi-weiss08.workers.dev";
+  
 export default function TaskInsights() {
   const [todos, setTodos] = useState<Todo[]>([]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/todos`)
+    fetch(`${API_BASE}/api/todos`, { cache: "no-store" })
       .then((res) => res.json())
       .then((data) =>
         setTodos(
