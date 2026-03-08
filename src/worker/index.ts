@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { Client } from "pg";
 import { cors } from "hono/cors";
+import { withDb } from "./db";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -20,14 +21,11 @@ app.use("/api/*", cors({
 let cachedClient: Client | null = null;
 
 export async function getPgClient(env: Env): Promise<Client> {
-  // 1. אם יש לקוח בזיכרון, נבדוק שהוא לא סגור
   if (cachedClient) {
-    // בדיקה האם הלקוח עדיין מחובר (Property פנימי של pg)
     // @ts-ignore
     if (cachedClient._connected && !cachedClient._ending) {
       return cachedClient;
     }
-    // אם הוא סגור, ננקה אותו ונמשיך ליצירת חדש
     cachedClient = null;
   }
 
@@ -50,41 +48,97 @@ export async function getPgClient(env: Env): Promise<Client> {
   }
 }
 
-// פונקציית עזר קריטית: מוודאת שהנתונים חוזרים ל-React בפורמט הנכון
-const parseTodo = (row: any) => ({
-  ...row,
-  is_completed: Boolean(row.is_completed),
-  // וידוא שה-subtasks הם תמיד מערך (Array) ולא מחרוזת
-  subtasks: typeof row.subtasks === 'string' ? JSON.parse(row.subtasks) : (row.subtasks || [])
-});
+const parseTodo = (row: any) => {
+  const formatDate = (dateVal: any) => {
+    if (!dateVal) return null;
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return null;
+    return d.toISOString().split('T')[0];
+  };
+
+  return {
+    ...row,
+    is_completed: Boolean(row.is_completed),
+    created_at: formatDate(row.created_at),
+    due_date: formatDate(row.due_date),
+    subtasks: typeof row.subtasks === 'string' ? JSON.parse(row.subtasks) : (row.subtasks || [])
+  };
+};
 
 app.get("/api/todos", async (c) => {
   const client = await getPgClient(c.env);
   try {
     const result = await client.query("SELECT * FROM todos ORDER BY created_at DESC");
-    return c.json(result.rows.map(parseTodo), 200, {
-      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-      "Pragma": "no-cache",
-      "Expires": "0",
+
+    // חשוב: להשתמש ב-parseTodo על כל שורה
+    const data = result.rows.map(parseTodo);
+
+    return c.json(data, 200, {
+      "Access-Control-Allow-Origin": "http://localhost:5173",
+      "Cache-Control": "no-store",
     });
-  } catch (error) {
-    console.error("Fetch error:", error);
-    return c.json({ error: "Failed to fetch todos" }, 500);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
   } finally {
-    await client.end();
+    c.executionCtx.waitUntil(client.end());
   }
 });
 
+// --- 2. הוספת משימה (POST) ---
 app.post("/api/todos", async (c) => {
   const body = await c.req.json();
+  return await withDb(c.env, async (client) => {
+    try {
+      const result = await client.query(
+        "INSERT INTO todos (title, priority, category, subtasks, due_date) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+        [
+          body.title,
+          body.priority || 'medium',
+          body.category || 'personal',
+          JSON.stringify(body.subtasks || []),
+          body.due_date || new Date().toISOString().split('T')[0]
+        ]
+      );
+      return c.json(parseTodo(result.rows[0]), 201);
+    } catch (error) {
+      return c.json({ error: "Failed to create todo" }, 500);
+    }
+  });
+});
+
+// --- 3. ימי הולדת (GET) ---
+app.get("/api/birthdays", async (c) => {
+  return await withDb(c.env, async (client) => {
+    try {
+      const result = await client.query("SELECT * FROM birthdays ORDER BY date ASC");
+      return c.json(result.rows, 200);
+    } catch (error) {
+      return c.json({ error: "Failed to fetch birthdays" }, 500);
+    }
+  });
+});
+
+app.post("/api/birthdays", async (c) => {
+  const body = await c.req.json();
   const client = await getPgClient(c.env);
+
   try {
     const result = await client.query(
-      "INSERT INTO todos (title, priority, category, subtasks) VALUES ($1, $2, $3, $4) RETURNING *",
-      [body.title, body.priority || 'medium', body.category || 'personal', JSON.stringify(body.subtasks || [])]
+      "INSERT INTO birthdays (name, date) VALUES ($1, $2) RETURNING *",
+      [body.name, body.date]
     );
-    return c.json(parseTodo(result.rows[0]), 201);
-  } finally { await client.end(); }
+
+    const response = c.json(result.rows[0], 201, {
+      "Access-Control-Allow-Origin": "http://localhost:5173",
+    });
+
+    c.executionCtx.waitUntil(client.end());
+    return response;
+
+  } catch (error: any) {
+    c.executionCtx.waitUntil(client.end());
+    return c.json({ error: error.message }, 500);
+  }
 });
 
 app.patch("/api/todos/:id", async (c) => {

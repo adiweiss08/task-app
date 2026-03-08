@@ -14,6 +14,9 @@ interface TodoForCalendar {
   title: string;
   dueDate: string | null;
   completed: boolean;
+  category: string; 
+  priority: string;
+  created_at: string;
 }
 
 interface Holiday {
@@ -22,10 +25,10 @@ interface Holiday {
   date: string;
 }
 
-const API_BASE = window.location.hostname === "localhost" 
-  ? "http://localhost:8787" 
+const API_BASE = window.location.hostname === "localhost"
+  ? "http://localhost:8787"
   : "https://task-app.adi-weiss08.workers.dev";
-  
+
 export default function BirthdaysPage() {
   const [birthdays, setBirthdays] = useState<Birthday[]>([]);
   const [apiHolidays, setApiHolidays] = useState<Holiday[]>([]);
@@ -41,6 +44,7 @@ export default function BirthdaysPage() {
   const [month, setMonth] = useState(today.getMonth());
   const [year, setYear] = useState(today.getFullYear());
   const [showHolidaysList, setShowHolidaysList] = useState(true);
+  const [showTasksList, setShowTasksList] = useState(true);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/birthdays`, { cache: "no-store" })
@@ -247,7 +251,7 @@ export default function BirthdaysPage() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Person's name"
+                  placeholder="Event's name"
                   className="w-full rounded-lg border border-sky-200 bg-white/80 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
                 />
               </div>
@@ -369,15 +373,20 @@ export default function BirthdaysPage() {
           <div className="grid grid-cols-7 gap-1 text-xs">
             {days.map((day) => {
               const iso = toISO(day);
-                  const dayBirthdays = birthdays.filter((b) => {
-                    if (!b.date) return false;
-                    const parts = b.date.split("-");
-                    const bM = parseInt(parts[1], 10);
-                    const bD = parseInt(parts[2], 10);
-                    return (bM - 1) === day.getMonth() && bD === day.getDate();
-                  });
+              const dayBirthdays = birthdays.filter((b) => {
+                if (!b.date) return false;
+                const parts = b.date.split("-");
+                const bM = parseInt(parts[1], 10);
+                const bD = parseInt(parts[2], 10);
+                return (bM - 1) === day.getMonth() && bD === day.getDate();
+              });
 
-              const dayTasks = tasks.filter((t) => t.dueDate === iso && !t.completed);
+              const dayTasks = tasks.filter((t) => {
+                if (!t.dueDate) return false;
+                // חותכים רק את ה-10 תווים הראשונים (YYYY-MM-DD) כדי להשוות ל-ISO
+                const taskDateOnly = t.dueDate.split('T')[0];
+                return taskDateOnly === iso && !t.completed;
+              });
               const dayHolidays = apiHolidays.filter((h) => {
                 const [, m, d] = h.date.split("-").map(Number);
                 return m - 1 === day.getMonth() && d === day.getDate();
@@ -515,6 +524,59 @@ export default function BirthdaysPage() {
                     </li>
                   );
                 })}
+            </ul>
+          )}
+        </section>
+
+        <section className="mt-4 rounded-2xl border border-sky-100 bg-white/90 p-5 shadow-sm">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-sky-900">
+              My Tasks List
+            </h2>
+            <button
+              onClick={() => setShowTasksList((prev) => !prev)}
+              className="text-[11px] font-medium text-sky-600 hover:text-sky-800"
+            >
+              {showTasksList ? "Hide" : "Show"}
+            </button>
+          </div>
+
+          {showTasksList && (
+            <ul className="divide-y divide-sky-50 text-xs">
+              {tasks.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground py-2">No tasks found.</p>
+              ) : (
+                tasks.map((t) => (
+                  <li
+                    key={t.id}
+                    className="group flex items-center justify-between py-2 transition-colors hover:bg-sky-50/30"
+                  >
+                    <div className="flex flex-col">
+                      <span className={`font-medium ${t.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                        {t.title}
+                      </span>
+                      <div className="flex gap-2 items-center mt-0.5">
+                        <span className="text-[10px] uppercase text-sky-500 font-semibold">
+                          {t.category || 'General'}
+                        </span>
+                        {t.dueDate && (
+                          <span className="text-[10px] text-muted-foreground">
+                            • {new Date(t.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* כפתור למחיקה מהירה או סטטוס */}
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${t.priority === 'high' ? 'bg-red-50 text-red-600' : 'bg-sky-50 text-sky-600'
+                        }`}>
+                        {t.priority}
+                      </span>
+                    </div>
+                  </li>
+                ))
+              )}
             </ul>
           )}
         </section>
