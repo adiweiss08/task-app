@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { Calendar as CalendarIcon, Gift, ArrowLeft, CheckCircle2, Star, Trash2 } from "lucide-react";
+import { Calendar as CalendarIcon, Gift, ArrowLeft, CheckCircle2, Star, Trash2, LogOut } from "lucide-react";
 import { Link } from "react-router";
+import { apiFetch } from "@/react-app/lib/api";
+import { useAuth } from "@/react-app/context/AuthContext";
 
 interface Birthday {
   id: number;
@@ -25,11 +27,8 @@ interface Holiday {
   date: string;
 }
 
-const API_BASE = window.location.hostname === "localhost"
-  ? "http://localhost:8787"
-  : "https://task-app.adi-weiss08.workers.dev";
-
 export default function BirthdaysPage() {
+  const { user, logout } = useAuth();
   const [birthdays, setBirthdays] = useState<Birthday[]>([]);
   const [apiHolidays, setApiHolidays] = useState<Holiday[]>([]);
   const [name, setName] = useState("");
@@ -48,12 +47,12 @@ export default function BirthdaysPage() {
   const [showEventsList, setShowEventsList] = useState(true);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/birthdays`, { cache: "no-store" })
+    apiFetch("/api/birthdays", { cache: "no-store" })
       .then(res => res.json())
       .then(data => setBirthdays(data))
       .catch(err => console.error("Error loading birthdays:", err));
 
-    fetch(`${API_BASE}/api/todos`, { cache: "no-store" })
+    apiFetch("/api/todos", { cache: "no-store" })
       .then(res => res.json())
       .then((data) => {
         const mapped = (data as any[]).map((t) => ({
@@ -153,9 +152,8 @@ export default function BirthdaysPage() {
       type: eventType,
     };
 
-    fetch(`${API_BASE}/api/birthdays`, {
+    apiFetch("/api/birthdays", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newBirthday),
       cache: "no-store",
     })
@@ -170,7 +168,7 @@ export default function BirthdaysPage() {
   };
 
   const deleteBirthday = (id: number) => {
-    fetch(`${API_BASE}/api/birthdays/${id}`, {
+    apiFetch(`/api/birthdays/${id}`, {
       method: "DELETE",
       cache: "no-store",
     })
@@ -229,13 +227,23 @@ export default function BirthdaysPage() {
               </p>
             </div>
           </div>
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white/70 px-4 py-2 text-sm font-medium text-sky-700 shadow-sm hover:bg-white hover:shadow-md transition-all"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to tasks
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white/70 px-4 py-2 text-sm font-medium text-sky-700 shadow-sm hover:bg-white hover:shadow-md transition-all"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to tasks
+            </Link>
+            <button
+              onClick={logout}
+              className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white/70 px-4 py-2 text-sm font-medium text-sky-700 shadow-sm hover:bg-white hover:shadow-md transition-all"
+              title="Log out"
+            >
+              <LogOut className="h-4 w-4" />
+              {user?.username || "Log out"}
+            </button>
+          </div>
         </header>
 
         <div className="mb-8 grid gap-4 rounded-2xl bg-white/80 p-5 shadow-sm backdrop-blur-sm border border-sky-100 md:grid-cols-[2fr,3fr]">

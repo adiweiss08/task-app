@@ -10,6 +10,7 @@
     "nodejs_compat"
   ],
   "vars": {
-    "DATABASE_URL": "postgresql://neondb_owner:npg_8omAnVYySDh2@ep-old-frost-aljtqeek.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+    "DATABASE_URL": "postgresql://neondb_owner:npg_8omAnVYySDh2@ep-old-frost-aljtqeek.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
+    "JWT_SECRET": "AdiWeiss"
   }
 }

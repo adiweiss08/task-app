@@ -1,7 +1,9 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Plus, Calendar, Flag, CheckCircle2, Circle, Search, X, Tag, Clock, ArrowUpDown, StickyNote, ImagePlus, Trash2, ListTodo, Square, CheckSquare, CalendarDays } from "lucide-react";
+import { Plus, Calendar, Flag, CheckCircle2, Circle, Search, X, Tag, Clock, ArrowUpDown, StickyNote, ImagePlus, Trash2, ListTodo, Square, CheckSquare, CalendarDays, LogOut } from "lucide-react";
 import { Link } from "react-router";
 import { BarChart3 } from "lucide-react";
+import { apiFetch } from "@/react-app/lib/api";
+import { useAuth } from "@/react-app/context/AuthContext";
 import { Button } from "@/react-app/components/ui/button";
 import { Input } from "@/react-app/components/ui/input";
 import { Badge } from "@/react-app/components/ui/badge";
@@ -28,10 +30,6 @@ interface Todo {
   subtasks: Subtask[];
   createdAt: number;
 }
-
-const API_BASE = window.location.hostname === "localhost"
-  ? "http://localhost:8787"
-  : "https://task-app.adi-weiss08.workers.dev";
 
 function mapApiTodoToUi(todo: any): Todo {
   return {
@@ -73,6 +71,7 @@ const getCategoryStyle = (category: Category) => {
 };
 
 export default function HomePage() {
+  const { user, logout } = useAuth();
   const [todos, setTodos] = useState<Todo[]>([]);
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [categoryFilter, setCategoryFilter] = useState<Category | "all">("all");
@@ -110,12 +109,9 @@ export default function HomePage() {
 
   const refetchTodos = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/todos`, {
+      const res = await apiFetch("/api/todos", {
         method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
+        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
       });
 
       if (!res.ok) throw new Error("Failed to fetch");
@@ -168,9 +164,8 @@ export default function HomePage() {
       if (!todo) return;
       const newStatus = !todo.completed;
 
-      await fetch(`${API_BASE}/api/todos/${id}`, {
+      await apiFetch(`/api/todos/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_completed: newStatus }),
         cache: "no-store",
       });
@@ -184,15 +179,24 @@ export default function HomePage() {
     if (!title || !title.trim()) return;
 
     try {
-      const res = await fetch(`${API_BASE}/api/todos`, {
+      const res = await apiFetch("/api/todos", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title.trim(), subtasks: [] }),
+        body: JSON.stringify({
+          title: title.trim(),
+          subtasks: [],
+          category: newCategory,
+          priority: newPriority,
+          due_date: newDueDate
+        }),
         cache: "no-store",
       });
 
       if (res.ok) {
         setNewTask("");
+        setNewPriority("medium");
+        setNewCategory("personal");
+        setNewDueDate("");
+
         await refetchTodos();
       }
     } catch (err) {
@@ -205,7 +209,7 @@ export default function HomePage() {
       // 1. קודם כל מוחקים מהמסך מיד
       setTodos(prev => prev.filter(t => t.id !== id));
 
-      const res = await fetch(`${API_BASE}/api/todos/${id}`, {
+      const res = await apiFetch(`/api/todos/${id}`, {
         method: "DELETE",
         headers: { "Cache-Control": "no-cache" }
       });
@@ -224,9 +228,8 @@ export default function HomePage() {
 
   const removeImage = async (id: number) => {
     try {
-      const res = await fetch(`${API_BASE}/api/todos/${id}`, {
+      const res = await apiFetch(`/api/todos/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image_url: null }),
         cache: "no-store",
       });
@@ -240,9 +243,8 @@ export default function HomePage() {
 
   const addImageToTodo = async (id: number, imageUrl: string) => {
     try {
-      const res = await fetch(`${API_BASE}/api/todos/${id}`, {
+      const res = await apiFetch(`/api/todos/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image_url: imageUrl }),
         cache: "no-store",
       });
@@ -262,9 +264,8 @@ export default function HomePage() {
       const newSub = { id: Date.now(), title, completed: false };
       const updatedSubtasks = [...(targetTodo.subtasks || []), newSub];
 
-      const res = await fetch(`${API_BASE}/api/todos/${todoId}`, {
+      const res = await apiFetch(`/api/todos/${todoId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subtasks: updatedSubtasks }),
         cache: "no-store",
       });
@@ -300,9 +301,8 @@ export default function HomePage() {
         st.id === subtaskId ? { ...st, completed: !st.completed } : st
       );
 
-      await fetch(`${API_BASE}/api/todos/${todoId}`, {
+      await apiFetch(`/api/todos/${todoId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subtasks: updatedSubtasks }),
       });
     } catch (err) {
@@ -318,9 +318,8 @@ export default function HomePage() {
     const updatedSubtasks = targetTodo.subtasks.filter(st => st.id !== subtaskId);
 
     try {
-      const res = await fetch(`${API_BASE}/api/todos/${todoId}`, {
+      const res = await apiFetch(`/api/todos/${todoId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subtasks: updatedSubtasks }),
         cache: "no-store",
       });
@@ -394,6 +393,14 @@ export default function HomePage() {
               Task Insights
             </Link>
 
+            <button
+              onClick={logout}
+              className="inline-flex items-center gap-2 rounded-full border border-pink-200 bg-white/70 px-4 py-2 text-sm font-medium text-pink-700 shadow-sm hover:bg-white hover:shadow-md transition-all"
+              title="Log out"
+            >
+              <LogOut className="h-4 w-4" />
+              {user?.username || "Log out"}
+            </button>
           </div>
         </header>
 
@@ -739,19 +746,30 @@ function TodoItem({ todo, onToggle, onDelete, onRemoveImage, onAddImage, onExpan
     low: "bg-green-100 text-green-700 border-green-200",
   };
 
-  const formatDate = (date: string) => {
-    const d = new Date(date);
-    const today = new Date();
-    const tomorrow = new Date(today);
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    d.setHours(0, 0, 0, 0);
+
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    if (d.toDateString() === today.toDateString()) return "Today";
-    if (d.toDateString() === tomorrow.toDateString()) return "Tomorrow";
+    if (d.getTime() === now.getTime()) return "Today";
+    if (d.getTime() === tomorrow.getTime()) return "Tomorrow";
+
     return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
-  const isOverdue = todo.dueDate && new Date(todo.dueDate) < new Date() && !todo.completed;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
+  const dueDateObj = todo.dueDate ? new Date(todo.dueDate) : null;
+  if (dueDateObj) dueDateObj.setHours(0, 0, 0, 0);
+
+  const isOverdue = dueDateObj && dueDateObj < today && !todo.completed;
+  const isToday = dueDateObj && dueDateObj.getTime() === today.getTime();
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>, todoId: number) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -803,9 +821,12 @@ function TodoItem({ todo, onToggle, onDelete, onRemoveImage, onAddImage, onExpan
                     }`}
                 >
                   <Clock className="h-3 w-3" />
-                  {formatDate(todo.dueDate)}
+                  <span>{formatDate(todo.dueDate)}</span>
+
                   {isOverdue && (
-                    <span className="rounded bg-red-100 px-1.5 py-0.5 text-red-600">Overdue</span>
+                    <span className="ml-1 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-red-600">
+                      Overdue
+                    </span>
                   )}
                 </span>
               )}

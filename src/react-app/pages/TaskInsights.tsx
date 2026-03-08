@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { ArrowLeft, PieChart as PieIcon, CheckCircle2, Clock } from "lucide-react";
+import { ArrowLeft, PieChart as PieIcon, CheckCircle2, Clock, LogOut } from "lucide-react";
 import { Link } from "react-router";
+import { apiFetch } from "@/react-app/lib/api";
+import { useAuth } from "@/react-app/context/AuthContext";
 
 interface Todo {
   id: number;
@@ -13,15 +15,12 @@ interface Todo {
 
 const COLORS = ["#0ea5e9", "#6366f1", "#8b5cf6", "#ec4899", "#f43f5e"];
 
-const API_BASE = window.location.hostname === "localhost" 
-  ? "http://localhost:8787" 
-  : "https://task-app.adi-weiss08.workers.dev";
-  
 export default function TaskInsights() {
+  const { user, logout } = useAuth();
   const [todos, setTodos] = useState<Todo[]>([]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/todos`, { cache: "no-store" })
+    apiFetch("/api/todos", { cache: "no-store" })
       .then((res) => res.json())
       .then((data) =>
         setTodos(
@@ -73,6 +72,14 @@ export default function TaskInsights() {
               <ArrowLeft className="h-4 w-4" />
               Back to tasks
             </Link>
+            <button
+              onClick={logout}
+              className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white/70 px-4 py-2 text-sm font-medium text-sky-700 shadow-sm hover:bg-white hover:shadow-md transition-all"
+              title="Log out"
+            >
+              <LogOut className="h-4 w-4" />
+              {user?.username || "Log out"}
+            </button>
           </div>
         </header>
         <div className="mb-8 grid gap-4 sm:grid-cols-3">
