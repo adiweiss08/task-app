@@ -6,7 +6,7 @@ interface Birthday {
   id: number;
   name: string;
   date: string;
-  type: "birthday" | "holiday" | "other";
+  type: string;
 }
 
 interface TodoForCalendar {
@@ -14,7 +14,7 @@ interface TodoForCalendar {
   title: string;
   dueDate: string | null;
   completed: boolean;
-  category: string; 
+  category: string;
   priority: string;
   created_at: string;
 }
@@ -45,6 +45,7 @@ export default function BirthdaysPage() {
   const [year, setYear] = useState(today.getFullYear());
   const [showHolidaysList, setShowHolidaysList] = useState(true);
   const [showTasksList, setShowTasksList] = useState(true);
+  const [showEventsList, setShowEventsList] = useState(true);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/birthdays`, { cache: "no-store" })
@@ -478,53 +479,71 @@ export default function BirthdaysPage() {
         </section>
 
         <section className="mt-6 rounded-2xl border border-sky-100 bg-white/90 p-5 shadow-sm">
-          <h2 className="mb-3 text-sm font-semibold text-sky-900">
-            All events
-          </h2>
-          {birthdays.length === 0 ? (
-            <p className="text-xs text-muted-foreground">
-              No events saved yet. Add one using the form above.
-            </p>
-          ) : (
-            <ul className="divide-y divide-sky-50 text-xs">
-              {birthdays
-                .slice()
-                .sort((a, b) => a.date.localeCompare(b.date))
-                .map((b) => {
-                  const d = new Date(b.date);
-                  return (
-                    <li
-                      key={b.id}
-                      className="group flex items-center justify-between py-2 transition-colors hover:bg-sky-50/30"
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-medium text-foreground">
-                          {b.name}
-                        </span>
-                        <span className="text-[11px] text-muted-foreground">
-                          {d.toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </span>
-                        <span className="text-[10px] uppercase text-sky-500">
-                          {b.type}
-                        </span>
-                      </div>
+          {/* כותרת עם כפתור הסתרה/הצגה */}
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-sky-900">
+              All events
+            </h2>
+            <button
+              onClick={() => setShowEventsList((prev) => !prev)}
+              className="text-[11px] font-medium text-sky-600 hover:text-sky-800"
+            >
+              {showEventsList ? "Hide" : "Show"}
+            </button>
+          </div>
 
-                      {/* כפתור המחיקה שמופיע ב-Hover */}
-                      <button
-                        onClick={() => deleteBirthday(b.id)}
-                        className="ml-2 rounded-lg p-1.5 text-muted-foreground opacity-0 transition-all hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
-                        title="Delete birthday"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </li>
-                  );
-                })}
-            </ul>
+          {showEventsList && (
+            <>
+              {birthdays.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  No events saved yet. Add one using the form above.
+                </p>
+              ) : (
+                <ul className="divide-y divide-sky-50 text-xs">
+                  {birthdays
+                    .slice()
+                    .sort((a, b) => a.date.localeCompare(b.date))
+                    .map((b) => {
+                      const d = new Date(b.date);
+                      return (
+                        <li
+                          key={b.id}
+                          className="group flex items-center justify-between py-2 transition-colors hover:bg-sky-50/30"
+                        >
+                          <div className="flex flex-row items-center justify-between w-full py-2">
+                            <div className="flex flex-col">
+                              <span className="font-medium text-foreground">
+                                {b.name}
+                              </span>
+                              <span className="text-[10px] uppercase text-sky-500 font-semibold mt-1">
+                                {b.type ? b.type : "Event"}
+                              </span>
+                            </div>
+
+                            <div className="text-right">
+                              <span className="text-[11px] text-muted-foreground whitespace-nowrap ml-4">
+                                {d.toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                })}
+                              </span>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => deleteBirthday(b.id)}
+                            className="ml-2 rounded-lg p-1.5 text-muted-foreground opacity-0 transition-all hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
+                            title="Delete birthday"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </li>
+                      );
+                    })}
+                </ul>
+              )}
+            </>
           )}
         </section>
 
@@ -551,28 +570,17 @@ export default function BirthdaysPage() {
                     key={t.id}
                     className="group flex items-center justify-between py-2 transition-colors hover:bg-sky-50/30"
                   >
-                    <div className="flex flex-col">
-                      <span className={`font-medium ${t.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                    <div className="flex flex-row items-center w-full py-1">
+                      { }
+                      <span className={`flex-1 font-medium ${t.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
                         {t.title}
                       </span>
-                      <div className="flex gap-2 items-center mt-0.5">
-                        <span className="text-[10px] uppercase text-sky-500 font-semibold">
-                          {t.category || 'General'}
-                        </span>
-                        {t.dueDate && (
-                          <span className="text-[10px] text-muted-foreground">
-                            • {new Date(t.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                          </span>
-                        )}
-                      </div>
-                    </div>
 
-                    {/* כפתור למחיקה מהירה או סטטוס */}
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${t.priority === 'high' ? 'bg-red-50 text-red-600' : 'bg-sky-50 text-sky-600'
-                        }`}>
-                        {t.priority}
-                      </span>
+                      {t.dueDate && (
+                        <span className="text-[10px] text-muted-foreground whitespace-nowrap ml-4">
+                          {new Date(t.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        </span>
+                      )}
                     </div>
                   </li>
                 ))

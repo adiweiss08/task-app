@@ -58,6 +58,7 @@ const parseTodo = (row: any) => {
 
   return {
     ...row,
+    category: row.category || row.Category || 'General',
     is_completed: Boolean(row.is_completed),
     created_at: formatDate(row.created_at),
     due_date: formatDate(row.due_date),
@@ -104,41 +105,6 @@ app.post("/api/todos", async (c) => {
       return c.json({ error: "Failed to create todo" }, 500);
     }
   });
-});
-
-// --- 3. ימי הולדת (GET) ---
-app.get("/api/birthdays", async (c) => {
-  return await withDb(c.env, async (client) => {
-    try {
-      const result = await client.query("SELECT * FROM birthdays ORDER BY date ASC");
-      return c.json(result.rows, 200);
-    } catch (error) {
-      return c.json({ error: "Failed to fetch birthdays" }, 500);
-    }
-  });
-});
-
-app.post("/api/birthdays", async (c) => {
-  const body = await c.req.json();
-  const client = await getPgClient(c.env);
-
-  try {
-    const result = await client.query(
-      "INSERT INTO birthdays (name, date) VALUES ($1, $2) RETURNING *",
-      [body.name, body.date]
-    );
-
-    const response = c.json(result.rows[0], 201, {
-      "Access-Control-Allow-Origin": "http://localhost:5173",
-    });
-
-    c.executionCtx.waitUntil(client.end());
-    return response;
-
-  } catch (error: any) {
-    c.executionCtx.waitUntil(client.end());
-    return c.json({ error: error.message }, 500);
-  }
 });
 
 app.patch("/api/todos/:id", async (c) => {
@@ -195,6 +161,74 @@ app.delete("/api/todos/:id", async (c) => {
     return c.json({ error: e.message }, 500);
   } finally {
     await client.end();
+  }
+});
+
+// פונקציה לניקוי נתוני ימי הולדת ואירועים
+const parseBirthday = (row: any) => ({
+  id: row.id,
+  name: row.name || row.Name,
+  // מוודא שה-type נשלח ל-React, ואם הוא חסר ב-DB משתמש ב-Birthday כברירת מחדל
+  type: row.type || row.Type || 'Birthday',
+  date: row.date || row.Date
+});
+
+// --- 3. ימי הולדת (GET) ---
+app.get("/api/birthdays", async (c) => {
+  const client = await getPgClient(c.env);
+  try {
+    const result = await client.query("SELECT * FROM birthdays ORDER BY date ASC");
+
+    // כאן אנחנו משתמשים בפונקציה החדשה שיצרנו
+    const data = result.rows.map(parseBirthday);
+
+    return c.json(data);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  } finally {
+    c.executionCtx.waitUntil(client.end());
+  }
+});
+
+app.post("/api/birthdays", async (c) => {
+  const body = await c.req.json();
+  const client = await getPgClient(c.env);
+
+  try {
+    const result = await client.query(
+      "INSERT INTO birthdays (name, date) VALUES ($1, $2) RETURNING *",
+      [body.name, body.date]
+    );
+
+    const response = c.json(result.rows[0], 201, {
+      "Access-Control-Allow-Origin": "http://localhost:5173",
+    });
+
+    c.executionCtx.waitUntil(client.end());
+    return response;
+
+  } catch (error: any) {
+    c.executionCtx.waitUntil(client.end());
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+app.delete("/api/birthdays/:id", async (c) => {
+  const id = c.req.param("id");
+  const client = await getPgClient(c.env);
+
+  try {
+    const result = await client.query("DELETE FROM birthdays WHERE id = $1", [id]);
+
+    if (result.rowCount === 0) {
+      return c.json({ error: "Birthday not found" }, 404);
+    }
+
+    return c.json({ message: "Deleted successfully" }, 200);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  } finally {
+    c.executionCtx.waitUntil(client.end());
   }
 });
 
