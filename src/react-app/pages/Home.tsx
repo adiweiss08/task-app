@@ -174,7 +174,6 @@ export default function HomePage() {
       await refetchTodos();
     } catch (err) { console.error("Toggle error:", err); }
   };
-
   const addTodo = async (title: string) => {
     if (!title || !title.trim()) return;
 
@@ -186,7 +185,8 @@ export default function HomePage() {
           subtasks: [],
           category: newCategory,
           priority: newPriority,
-          due_date: newDueDate
+          due_date: newDueDate,
+          image_url: newImage 
         }),
         cache: "no-store",
       });
@@ -196,8 +196,11 @@ export default function HomePage() {
         setNewPriority("medium");
         setNewCategory("personal");
         setNewDueDate("");
+        setNewImage(null); 
+        if (fileInputRef.current) fileInputRef.current.value = "";
 
         await refetchTodos();
+        
       }
     } catch (err) {
       console.error("Error adding todo:", err);
@@ -206,7 +209,6 @@ export default function HomePage() {
 
   const deleteTodo = async (id: number) => {
     try {
-      // 1. קודם כל מוחקים מהמסך מיד
       setTodos(prev => prev.filter(t => t.id !== id));
 
       const res = await apiFetch(`/api/todos/${id}`, {
@@ -215,11 +217,9 @@ export default function HomePage() {
       });
 
       if (!res.ok) {
-        // רק אם הייתה שגיאה אמיתית, אנחנו מחזירים את המצב לקדמותו
         console.error("Server failed to delete");
         await refetchTodos();
       }
-      // לא קוראים ל-refetchTodos() אם הכל עבר בשלום!
     } catch (err) {
       console.error("Delete error:", err);
       await refetchTodos();
@@ -280,7 +280,6 @@ export default function HomePage() {
   const toggleSubtask = async (todoId: number, subtaskId: string | number) => {
     setTodos(prevTodos => prevTodos.map(todo => {
       if (todo.id === todoId) {
-        // מוצאים את ה-subtask הספציפי לפי ה-ID שלו במקום לפי אינדקס
         const newSubtasks = todo.subtasks.map(st => {
           if (st.id === subtaskId) {
             return { ...st, completed: !st.completed };
@@ -292,7 +291,6 @@ export default function HomePage() {
       return todo;
     }));
 
-    // שליחה לשרת (לוגיקה דומה)
     try {
       const todo = todos.find(t => t.id === todoId);
       if (!todo) return;
@@ -533,8 +531,6 @@ export default function HomePage() {
               autoFocus
               className="mb-4 border-0 bg-transparent px-0 text-lg font-medium placeholder:text-muted-foreground/50 focus-visible:ring-0"
             />
-
-            {/* Image Preview */}
             {newImage && (
               <div className="mb-4 relative inline-block">
                 <img
@@ -553,7 +549,6 @@ export default function HomePage() {
                 </button>
               </div>
             )}
-
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2">
                 <Tag className="h-4 w-4 text-muted-foreground" />
@@ -613,7 +608,6 @@ export default function HomePage() {
                 />
               </div>
 
-              {/* Image Upload Button */}
               <label className="flex items-center gap-2 rounded-lg border border-pink-200 bg-pink-50/50 px-3 py-1.5 text-sm cursor-pointer hover:bg-pink-100/50 transition-colors">
                 <ImagePlus className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Image</span>
@@ -646,8 +640,6 @@ export default function HomePage() {
             </div>
           </div>
         )}
-
-        {/* Task List */}
         <div
           className={
             viewMode === "grid"
@@ -682,7 +674,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Image Modal */}
       {expandedImage && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
@@ -729,13 +720,10 @@ function TodoItem({ todo, onToggle, onDelete, onRemoveImage, onAddImage, onExpan
   const totalSubtasks = todo.subtasks.length;
 
   const handleAddSubtask = async () => {
-    // בדיקה שיש טקסט
     if (!newSubtaskTitle.trim()) return;
 
-    // קריאה לפונקציה ששומרת ב-db.json (זו ששלחתי לך קודם)
     onAddSubtask(todo.id, newSubtaskTitle.trim());
 
-    // ניקוי השדה וסגירה רק אחרי השמירה
     setNewSubtaskTitle("");
     setShowSubtaskInput(false);
   };
@@ -775,7 +763,6 @@ function TodoItem({ todo, onToggle, onDelete, onRemoveImage, onAddImage, onExpan
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        // עכשיו אנחנו משתמשים ב-todoId שהעברנו
         onAddImage(todoId, reader.result as string);
       };
       reader.readAsDataURL(file);
@@ -831,7 +818,6 @@ function TodoItem({ todo, onToggle, onDelete, onRemoveImage, onAddImage, onExpan
                 </span>
               )}
 
-              {/* Subtask count */}
               {totalSubtasks > 0 && (
                 <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                   <ListTodo className="h-3 w-3" />
@@ -839,7 +825,6 @@ function TodoItem({ todo, onToggle, onDelete, onRemoveImage, onAddImage, onExpan
                 </span>
               )}
 
-              {/* Add Image Button (hidden, shown on hover) */}
               {!todo.imageUrl && (
                 <label className="flex items-center gap-1 text-xs text-muted-foreground/60 opacity-0 group-hover:opacity-100 cursor-pointer hover:text-pink-500 transition-all">
                   <ImagePlus className="h-3 w-3" />

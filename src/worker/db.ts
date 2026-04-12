@@ -10,9 +10,6 @@ export async function getPgClient(env: any) {
   return client;
 }
 
-/** * פונקציה עוטפת לביצוע שאילתות בצורה נקייה.
- * שימי לב: הסרנו את ה-client.end() כדי לא לסגור את הצינור!
- */
 export async function withDb<T>(
   env: Env,
   fn: (client: Client) => Promise<T>
