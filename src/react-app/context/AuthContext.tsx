@@ -22,7 +22,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 const API_BASE = window.location.hostname === "localhost"
   ? "http://localhost:8787"
-  : "https://task-app.adi-weiss08.workers.dev";
+  : "https://adi-task.adi-weiss08.workers.dev";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

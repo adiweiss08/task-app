@@ -1,6 +1,3 @@
--- PostgreSQL schema for task-app (run this once against your Postgres DB)
--- For auth support, run migrations/5_auth.sql after the base schema
-
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   username TEXT UNIQUE NOT NULL,

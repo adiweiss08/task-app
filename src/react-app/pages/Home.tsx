@@ -174,6 +174,7 @@ export default function HomePage() {
       await refetchTodos();
     } catch (err) { console.error("Toggle error:", err); }
   };
+
   const addTodo = async (title: string) => {
     if (!title || !title.trim()) return;
 
@@ -200,7 +201,7 @@ export default function HomePage() {
         if (fileInputRef.current) fileInputRef.current.value = "";
 
         await refetchTodos();
-        
+
       }
     } catch (err) {
       console.error("Error adding todo:", err);
@@ -757,7 +758,6 @@ function TodoItem({ todo, onToggle, onDelete, onRemoveImage, onAddImage, onExpan
   if (dueDateObj) dueDateObj.setHours(0, 0, 0, 0);
 
   const isOverdue = dueDateObj && dueDateObj < today && !todo.completed;
-  const isToday = dueDateObj && dueDateObj.getTime() === today.getTime();
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>, todoId: number) => {
     const file = e.target.files?.[0];
     if (file) {
