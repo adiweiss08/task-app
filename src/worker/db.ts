@@ -20,5 +20,4 @@ export async function withDb<T>(
   } catch (error) {
     throw error;
   }
-  // לא עושים client.end() כאן!
 }

@@ -75,7 +75,6 @@ async function authMiddleware(c: any, next: () => Promise<void>) {
   await next();
 }
 
-// --- Auth Routes (public) ---
 app.post("/api/auth/signup", async (c) => {
   try {
     const body = await c.req.json();
@@ -169,7 +168,6 @@ const parseBirthday = (row: any) => ({
   date: row.date || row.Date
 });
 
-// --- Protected routes ---
 const api = app.basePath("/api");
 
 api.use("/todos/*", authMiddleware);
@@ -177,7 +175,6 @@ api.use("/todos", authMiddleware);
 api.use("/birthdays/*", authMiddleware);
 api.use("/birthdays", authMiddleware);
 
-// --- Todos ---
 api.get("/todos", async (c) => {
   const userId = c.get("userId");
   const client = await getPgClient(c.env);
@@ -206,16 +203,16 @@ api.post("/todos", async (c) => {
   return await withDb(c.env, async (client) => {
     try {
       const result = await client.query(
-        "INSERT INTO todos (title, priority, category, subtasks, due_date, user_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+        "INSERT INTO todos (title, priority, category, subtasks, due_date, user_id, image_url) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
         [
           body.title,
-          // לקיחת הערך מה-React (גם אם הוא באות גדולה) או ברירת מחדל
           (body.priority || body.Priority || 'medium').toLowerCase(),
           (body.category || body.Category || 'personal').toLowerCase(),
           JSON.stringify(body.subtasks || []),
-          // שמירה כפורמט תאריך נקי (YYYY-MM-DD) כדי למנוע את בעיית ה-10/03
           (body.due_date || body.dueDate || new Date().toISOString()).split('T')[0],
           userId,
+          // הוספתי כאן את השליפה של התמונה מה-Body
+          body.image_url || null 
         ]
       );
       return c.json(parseTodo(result.rows[0]), 201);

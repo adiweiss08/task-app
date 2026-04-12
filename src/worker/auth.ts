@@ -1,7 +1,3 @@
-/**
- * Password hashing using Web Crypto PBKDF2 (works in Cloudflare Workers)
- * Based on: https://lord.technology/2024/02/21/hashing-passwords-on-cloudflare-workers.html
- */
 export async function hashPassword(
   password: string,
   providedSalt?: Uint8Array

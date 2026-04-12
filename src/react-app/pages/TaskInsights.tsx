@@ -36,7 +36,6 @@ export default function TaskInsights() {
       .catch((err) => console.error("Error fetching tasks:", err));
   }, []);
 
-    // עיבוד נתונים 1: התפלגות לפי קטגוריות (עבור גרף עוגה)
   const categoryData = Object.entries(
     todos.reduce((acc: any, todo) => {
       acc[todo.category] = (acc[todo.category] || 0) + 1;
@@ -44,10 +43,8 @@ export default function TaskInsights() {
     }, {})
   ).map(([name, value]) => ({ name, value }));
 
-    // עיבוד נתונים 2: סטטוס ביצוע
   const completedCount = todos.filter((t) => t.completed).length;
 
-    // עיבוד נתונים 3: לפי עדיפות (עבור גרף עמודות)
   const priorityData = ["high", "medium", "low"].map((p) => ({
     priority: p,
     count: todos.filter((t) => t.priority === p).length,
@@ -57,13 +54,11 @@ export default function TaskInsights() {
     <div className="bg-slate-50 p-6 lg:p-10">
       <div className="mx-auto max-w-5xl">
         <header className="mb-8 flex items-start justify-between">
-          {/* Side left: titles */}
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Task Insights</h1>
             <p className="text-slate-500">Data analysis of your productivity</p>
           </div>
 
-          {/* Side right: button */}
           <div className="flex flex-col items-end gap-4">
             <Link
               to="/"
@@ -109,7 +104,6 @@ export default function TaskInsights() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
-          {/* Pie chart - categories */}
           <div className="rounded-3xl bg-white p-6 shadow-sm border border-slate-100">
             <h3 className="mb-6 font-bold text-slate-800">Tasks by Category</h3>
             <div className="h-[300px] w-full">
@@ -133,7 +127,6 @@ export default function TaskInsights() {
             </div>
           </div>
 
-          {/* Bar chart - priorities */}
           <div className="rounded-3xl bg-white p-6 shadow-sm border border-slate-100">
             <h3 className="mb-6 font-bold text-slate-800">Tasks by Priority</h3>
             <div className="h-[300px] w-full">
