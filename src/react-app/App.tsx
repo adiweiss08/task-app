@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router";
-import HomePage from "@/react-app/pages/Home";
+import HomePage from "@/react-app/pages/HomePage";
 import BirthdaysPage from "@/react-app/pages/Birthdays";
 import TaskInsights from "@/react-app/pages/TaskInsights";
 import LoginPage from "@/react-app/pages/LoginPage";

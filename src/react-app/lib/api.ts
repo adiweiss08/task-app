@@ -1,9 +1,7 @@
-/**
- * Authenticated fetch helper - adds Authorization header from localStorage
- */
-const API_BASE = window.location.hostname === "localhost"
-  ? "http://localhost:8787"
-  : "https://adi-task.adi-weiss08.workers.dev";
+const API_BASE =
+  window.location.hostname === "localhost"
+    ? "http://localhost:8787"
+    : "https://adi-task.adi-weiss08.workers.dev";
 
 const TOKEN_KEY = "task_app_token";
 const USER_KEY = "task_app_user";
@@ -20,16 +18,11 @@ function clearAuthAndRedirect(): void {
   try {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
-  } catch {
-    // ignore
-  }
+  } catch {}
   window.location.href = "/login";
 }
 
-export function apiFetch(
-  path: string,
-  options: RequestInit = {}
-): Promise<Response> {
+export function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
   const token = getToken();
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string>),

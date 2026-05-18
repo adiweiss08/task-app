@@ -13,7 +13,7 @@ export const SubtaskSchema = z.object({
 export const TodoSchema = z.object({
   id: z.number(),
   title: z.string(),
-  is_completed: z.number().int(), // 0 or 1 in the DB
+  is_completed: z.number().int(),
   priority: PrioritySchema,
   category: CategorySchema,
   due_date: z.string().nullable(),
