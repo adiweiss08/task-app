@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router";
 import HomePage from "@/react-app/pages/HomePage";
-import BirthdaysPage from "@/react-app/pages/Birthdays";
+import EventsPage from "@/react-app/pages/Events";
 import TaskInsights from "@/react-app/pages/TaskInsights";
 import LoginPage from "@/react-app/pages/LoginPage";
 import SignupPage from "@/react-app/pages/SignupPage";
@@ -27,7 +27,8 @@ export default function App() {
         <Route path="/login" element={<AuthRedirect><LoginPage /></AuthRedirect>} />
         <Route path="/signup" element={<AuthRedirect><SignupPage /></AuthRedirect>} />
         <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-        <Route path="/birthdays" element={<ProtectedRoute><BirthdaysPage /></ProtectedRoute>} />
+        <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
+        <Route path="/birthdays" element={<Navigate to="/events" replace />} />
         <Route path="/stats" element={<ProtectedRoute><TaskInsights /></ProtectedRoute>} />
       </Routes>
     </Router>

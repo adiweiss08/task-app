@@ -151,13 +151,31 @@ app.post("/api/auth/login", async (c) => {
   }
 });
 
+function normalizeIsCompleted(value: unknown): 0 | 1 {
+  if (value === true || value === 1 || value === "1") return 1;
+  return 0;
+}
+
+function toDateOnlyString(dateVal: unknown): string | null {
+  if (dateVal == null || dateVal === "") return null;
+  if (typeof dateVal === "string") {
+    const match = dateVal.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+  }
+  if (dateVal instanceof Date && !isNaN(dateVal.getTime())) {
+    const y = dateVal.getFullYear();
+    const m = String(dateVal.getMonth() + 1).padStart(2, "0");
+    const d = String(dateVal.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+  return null;
+}
+
+function normalizeDateInput(dateStr: string): string {
+  return dateStr.split("T")[0].slice(0, 10);
+}
+
 function parseTodo(row: Record<string, unknown>) {
-  const formatDate = (dateVal: unknown) => {
-    if (!dateVal) return null;
-    const d = new Date(dateVal as string | number | Date);
-    if (isNaN(d.getTime())) return null;
-    return d.toISOString().split("T")[0];
-  };
 
   const rawSubtasks = row.subtasks;
   const subtasks =
@@ -170,20 +188,26 @@ function parseTodo(row: Record<string, unknown>) {
   return {
     ...row,
     category: row.category || (row as { Category?: string }).Category || "General",
-    is_completed: Boolean(row.is_completed),
-    created_at: formatDate(row.created_at),
-    due_date: formatDate(row.due_date),
+    is_completed: normalizeIsCompleted(row.is_completed),
+    created_at: toDateOnlyString(row.created_at),
+    due_date: toDateOnlyString(row.due_date),
     image_url: row.image_url ?? null,
     subtasks,
   };
 }
 
-function parseBirthday(row: Record<string, unknown>) {
+function normalizeEventType(type: unknown): string {
+  const raw = String(type ?? "event");
+  if (raw === "birthday") return "event";
+  return raw;
+}
+
+function parseEvent(row: Record<string, unknown>) {
   return {
     id: row.id,
     name: row.name || (row as { Name?: string }).Name,
-    type: row.type || (row as { Type?: string }).Type || "birthday",
-    date: row.date || (row as { Date?: string }).Date,
+    type: normalizeEventType(row.type || (row as { Type?: string }).Type),
+    date: toDateOnlyString(row.date || (row as { Date?: string }).Date) ?? "",
   };
 }
 
@@ -191,6 +215,8 @@ const api = app.basePath("/api");
 
 api.use("/todos/*", authMiddleware);
 api.use("/todos", authMiddleware);
+api.use("/events/*", authMiddleware);
+api.use("/events", authMiddleware);
 api.use("/birthdays/*", authMiddleware);
 api.use("/birthdays", authMiddleware);
 
@@ -267,7 +293,7 @@ api.patch("/todos/:id", async (c) => {
     }
     if (body.is_completed !== undefined) {
       fields.push(`is_completed = $${idx++}`);
-      values.push(body.is_completed);
+      values.push(normalizeIsCompleted(body.is_completed));
     }
     if (body.subtasks !== undefined) {
       fields.push(`subtasks = $${idx++}`);
@@ -317,16 +343,103 @@ api.delete("/todos/:id", async (c) => {
   }
 });
 
-api.get("/birthdays", async (c) => {
+const handleGetEvents = async (c: { get: (key: "userId") => number; env: Env; executionCtx: { waitUntil: (p: Promise<unknown>) => void }; json: (data: unknown, status?: number) => Response }) => {
   const userId = c.get("userId");
   const client = await getPgClient(c.env);
   try {
     const result = await client.query(
-      "SELECT * FROM birthdays WHERE user_id = $1 ORDER BY date ASC",
+      `SELECT id, name, type,
+        CASE
+          WHEN date::text ~ '^\\d{4}-\\d{2}-\\d{2}' THEN substring(date::text from 1 for 10)
+          ELSE to_char(date::date, 'YYYY-MM-DD')
+        END AS date,
+        user_id
+      FROM birthdays WHERE user_id = $1 ORDER BY date ASC`,
       [userId]
     );
-    const data = result.rows.map((r) => parseBirthday(r as Record<string, unknown>));
+    const data = result.rows.map((r) => parseEvent(r as Record<string, unknown>));
     return c.json(data);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Error";
+    return c.json({ error: message }, 500);
+  } finally {
+    c.executionCtx.waitUntil(client.end());
+  }
+};
+
+api.get("/events", handleGetEvents);
+api.get("/birthdays", handleGetEvents);
+
+api.post("/events", async (c) => {
+  const userId = c.get("userId");
+  if (!userId) {
+    return c.json({ error: "Unauthorized - No user ID found" }, 401);
+  }
+  const body = await c.req.json();
+  const client = await getPgClient(c.env);
+  try {
+    const dateOnly = normalizeDateInput(String((body as { date: string }).date));
+    const result = await client.query(
+      `INSERT INTO birthdays (name, date, type, user_id) VALUES ($1, $2, $3, $4)
+       RETURNING id, name, type, date::text AS date, user_id`,
+      [
+        (body as { name: string }).name,
+        dateOnly,
+        normalizeEventType((body as { type?: string }).type),
+        userId,
+      ]
+    );
+    const response = c.json(parseEvent(result.rows[0] as Record<string, unknown>), 201, {
+      "Access-Control-Allow-Origin": "http://localhost:5173",
+    });
+    c.executionCtx.waitUntil(client.end());
+    return response;
+  } catch (error: unknown) {
+    console.error("Database Error:", error instanceof Error ? error.message : error);
+    c.executionCtx.waitUntil(client.end());
+    return c.json({ error: "Failed to save event" }, 500);
+  }
+});
+
+api.post("/birthdays", async (c) => {
+  const userId = c.get("userId");
+  if (!userId) return c.json({ error: "Unauthorized - No user ID found" }, 401);
+  const body = await c.req.json();
+  const client = await getPgClient(c.env);
+  try {
+    const dateOnly = normalizeDateInput(String((body as { date: string }).date));
+    const result = await client.query(
+      `INSERT INTO birthdays (name, date, type, user_id) VALUES ($1, $2, $3, $4)
+       RETURNING id, name, type, date::text AS date, user_id`,
+      [
+        (body as { name: string }).name,
+        dateOnly,
+        normalizeEventType((body as { type?: string }).type),
+        userId,
+      ]
+    );
+    const response = c.json(parseEvent(result.rows[0] as Record<string, unknown>), 201);
+    c.executionCtx.waitUntil(client.end());
+    return response;
+  } catch (error: unknown) {
+    c.executionCtx.waitUntil(client.end());
+    return c.json({ error: "Failed to save event" }, 500);
+  }
+});
+
+api.delete("/events/:id", async (c) => {
+  const userId = c.get("userId");
+  const id = c.req.param("id");
+  const client = await getPgClient(c.env);
+  try {
+    const result = await client.query("DELETE FROM birthdays WHERE id = $1 AND user_id = $2 RETURNING id", [
+      id,
+      userId,
+    ]);
+    if (result.rowCount === 0) {
+      return c.json({ error: "Event not found" }, 404);
+    }
+    return c.json({ message: "Deleted successfully" }, 200);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Error";
     return c.json({ error: message }, 500);
@@ -335,55 +448,18 @@ api.get("/birthdays", async (c) => {
   }
 });
 
-api.post("/birthdays", async (c) => {
-  const userId = c.get("userId");
-
-  if (!userId) {
-    return c.json({ error: "Unauthorized - No user ID found" }, 401);
-  }
-
-  const body = await c.req.json();
-  const client = await getPgClient(c.env);
-
-  try {
-    const result = await client.query(
-      "INSERT INTO birthdays (name, date, type, user_id) VALUES ($1, $2, $3, $4) RETURNING *",
-      [
-        (body as { name: string }).name,
-        String((body as { date: string }).date).split("T")[0],
-        (body as { type?: string }).type || "birthday",
-        userId,
-      ]
-    );
-
-    const response = c.json(parseBirthday(result.rows[0] as Record<string, unknown>), 201, {
-      "Access-Control-Allow-Origin": "http://localhost:5173",
-    });
-
-    c.executionCtx.waitUntil(client.end());
-    return response;
-  } catch (error: unknown) {
-    console.error("Database Error:", error instanceof Error ? error.message : error);
-    c.executionCtx.waitUntil(client.end());
-    return c.json({ error: "Failed to save birthday" }, 500);
-  }
-});
-
 api.delete("/birthdays/:id", async (c) => {
   const userId = c.get("userId");
   const id = c.req.param("id");
   const client = await getPgClient(c.env);
-
   try {
     const result = await client.query("DELETE FROM birthdays WHERE id = $1 AND user_id = $2 RETURNING id", [
       id,
       userId,
     ]);
-
     if (result.rowCount === 0) {
-      return c.json({ error: "Birthday not found" }, 404);
+      return c.json({ error: "Event not found" }, 404);
     }
-
     return c.json({ message: "Deleted successfully" }, 200);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Error";

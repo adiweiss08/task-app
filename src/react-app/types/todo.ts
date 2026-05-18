@@ -42,6 +42,12 @@ export const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
   { value: "low", label: "Low" },
 ];
 
+import { toDateOnlyString } from "@/react-app/lib/dates";
+
+export function isCompletedFromApi(value: unknown): boolean {
+  return value === true || value === 1 || value === "1";
+}
+
 export function getCategoryStyle(category: Category): CategoryOption {
   const found = BASE_CATEGORIES.find((c) => c.value === category);
   if (found) return found;
@@ -66,10 +72,10 @@ export function mapApiTodoToUi(todo: Record<string, unknown>): Todo {
   return {
     id: Number(todo.id),
     title: String(todo.title ?? ""),
-    completed: Boolean(todo.is_completed),
+    completed: isCompletedFromApi(todo.is_completed),
     priority: (todo.priority as Priority) || "medium",
     category: String(todo.category ?? "personal"),
-    dueDate: todo.due_date != null ? String(todo.due_date) : null,
+    dueDate: toDateOnlyString(todo.due_date),
     imageUrl: todo.image_url != null ? String(todo.image_url) : null,
     subtasks,
     createdAt,

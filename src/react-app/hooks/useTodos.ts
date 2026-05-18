@@ -36,25 +36,29 @@ export function useTodos() {
 
   const toggleTodo = useCallback(
     async (id: number) => {
-      let nextCompleted = false;
-      let found = false;
-      setTodos((prev) => {
-        const todo = prev.find((t) => t.id === id);
-        if (!todo) return prev;
-        found = true;
-        nextCompleted = !todo.completed;
-        return prev.map((t) => (t.id === id ? { ...t, completed: nextCompleted } : t));
-      });
-      if (!found) return;
+      const todo = todosRef.current.find((t) => t.id === id);
+      if (!todo) return;
+      const nextCompleted = !todo.completed;
+      const isCompletedDb = nextCompleted ? 1 : 0;
+
+      setTodos((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, completed: nextCompleted } : t))
+      );
+
       try {
-        await apiFetch(`/api/todos/${id}`, {
+        const res = await apiFetch(`/api/todos/${id}`, {
           method: "PATCH",
-          body: JSON.stringify({ is_completed: nextCompleted }),
+          body: JSON.stringify({ is_completed: isCompletedDb }),
           cache: "no-store",
         });
+        if (!res.ok) {
+          await refetchTodos();
+          return;
+        }
         await refetchTodos();
       } catch (err) {
         console.error("Toggle error:", err);
+        await refetchTodos();
       }
     },
     [refetchTodos]

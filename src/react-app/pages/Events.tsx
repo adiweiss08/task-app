@@ -3,12 +3,26 @@ import { Calendar as CalendarIcon, Gift, ArrowLeft, CheckCircle2, Star, Trash2, 
 import { Link } from "react-router";
 import { apiFetch } from "@/react-app/lib/api";
 import { useAuth } from "@/react-app/context/AuthContext";
+import { loadCalendarColors, saveCalendarColors } from "@/react-app/lib/calendarColors";
+import { formatDisplayDate, normalizeDateInput, toDateOnlyString } from "@/react-app/lib/dates";
+import { isCompletedFromApi } from "@/react-app/types/todo";
 
-interface Birthday {
+interface CalendarEvent {
   id: number;
   name: string;
   date: string;
   type: string;
+}
+
+function isEventType(type: string) {
+  return type === "event" || type === "birthday";
+}
+
+function formatEventTypeLabel(type: string) {
+  if (isEventType(type)) return "Event";
+  if (type === "holiday") return "Holiday";
+  if (type === "other") return "Other";
+  return type;
 }
 
 interface TodoForCalendar {
@@ -27,17 +41,18 @@ interface Holiday {
   date: string;
 }
 
-export default function BirthdaysPage() {
+export default function EventsPage() {
   const { user, logout } = useAuth();
-  const [birthdays, setBirthdays] = useState<Birthday[]>([]);
+  const initialColors = loadCalendarColors();
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [apiHolidays, setApiHolidays] = useState<Holiday[]>([]);
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
-  const [eventType, setEventType] = useState<"birthday" | "holiday" | "other">("birthday");
+  const [eventType, setEventType] = useState<"event" | "holiday" | "other">("event");
   const [tasks, setTasks] = useState<TodoForCalendar[]>([]);
-  const [birthdayColor, setBirthdayColor] = useState<string>("#ec4899"); // pink
-  const [holidayColor, setHolidayColor] = useState<string>("#3b82f6"); // blue
-  const [tasksColor, setTasksColor] = useState<string>("#22c55e"); // green
+  const [eventColor, setEventColor] = useState<string>(initialColors.eventColor);
+  const [holidayColor, setHolidayColor] = useState<string>(initialColors.holidayColor);
+  const [tasksColor, setTasksColor] = useState<string>(initialColors.tasksColor);
 
   const today = new Date();
   const [month, setMonth] = useState(today.getMonth());
@@ -46,62 +61,40 @@ export default function BirthdaysPage() {
   const [showTasksList, setShowTasksList] = useState(true);
   const [showEventsList, setShowEventsList] = useState(true);
 
+  const persistColors = (next: { eventColor?: string; holidayColor?: string; tasksColor?: string }) => {
+    const merged = {
+      eventColor: next.eventColor ?? eventColor,
+      holidayColor: next.holidayColor ?? holidayColor,
+      tasksColor: next.tasksColor ?? tasksColor,
+    };
+    saveCalendarColors(merged);
+  };
+
   useEffect(() => {
-    apiFetch("/api/birthdays", { cache: "no-store" })
-      .then(res => res.json())
-      .then(data => setBirthdays(data))
-      .catch(err => console.error("Error loading birthdays:", err));
+    apiFetch("/api/events", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        const normalized = (data as CalendarEvent[]).map((e) => ({
+          ...e,
+          date: toDateOnlyString(e.date) ?? String(e.date).split("T")[0],
+        }));
+        setEvents(normalized);
+      })
+      .catch((err) => console.error("Error loading events:", err));
 
     apiFetch("/api/todos", { cache: "no-store" })
-      .then(res => res.json())
+      .then((res) => res.json())
       .then((data) => {
-        const mapped = (data as any[]).map((t) => ({
-          id: t.id,
-          title: t.title,
-          dueDate: t.due_date ?? null,
-          completed: Boolean(t.is_completed),
+        const mapped = (data as Record<string, unknown>[]).map((t) => ({
+          id: Number(t.id),
+          title: String(t.title ?? ""),
+          dueDate: t.due_date != null ? String(t.due_date) : null,
+          completed: isCompletedFromApi(t.is_completed),
         })) as TodoForCalendar[];
         setTasks(mapped);
       })
-      .catch(err => console.error("Error loading tasks:", err));
+      .catch((err) => console.error("Error loading tasks:", err));
   }, []);
-
-  useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem("mytasks_calendar_colors");
-      if (saved) {
-        const parsed = JSON.parse(saved) as {
-          birthdayColor?: string;
-          holidayColor?: string;
-          tasksColor?: string;
-        };
-        if (parsed.birthdayColor) setBirthdayColor(parsed.birthdayColor);
-        if (parsed.holidayColor) setHolidayColor(parsed.holidayColor);
-        if (parsed.tasksColor) setTasksColor(parsed.tasksColor);
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem("mytasks_birthdays", JSON.stringify(birthdays));
-    } catch {
-      // ignore
-    }
-  }, [birthdays]);
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(
-        "mytasks_calendar_colors",
-        JSON.stringify({ birthdayColor, holidayColor, tasksColor })
-      );
-    } catch {
-      // ignore
-    }
-  }, [birthdayColor, holidayColor, tasksColor]);
 
   useEffect(() => {
     try {
@@ -143,41 +136,46 @@ export default function BirthdaysPage() {
       .catch((err) => console.error("Error fetching holidays:", err));
   }, []);
 
-  const addBirthday = () => {
+  const addEvent = () => {
     if (!name.trim() || !date) return;
 
-    const newBirthday = {
+    const dateOnly = normalizeDateInput(date);
+    const payload = {
       name: name.trim(),
-      date: date,
+      date: dateOnly,
       type: eventType,
     };
 
-    apiFetch("/api/birthdays", {
+    apiFetch("/api/events", {
       method: "POST",
-      body: JSON.stringify(newBirthday),
+      body: JSON.stringify(payload),
       cache: "no-store",
     })
-      .then(res => res.json())
-      .then(savedBirthday => {
-        setBirthdays([...birthdays, savedBirthday]);
+      .then((res) => res.json())
+      .then((saved) => {
+        const item = saved as CalendarEvent;
+        setEvents((prev) => [
+          ...prev,
+          { ...item, date: toDateOnlyString(item.date) ?? dateOnly },
+        ]);
         setName("");
         setDate("");
-        setEventType("birthday");
+        setEventType("event");
       })
-      .catch(err => console.error("Error saving birthday:", err));
+      .catch((err) => console.error("Error saving event:", err));
   };
 
-  const deleteBirthday = (id: number) => {
-    apiFetch(`/api/birthdays/${id}`, {
+  const deleteEvent = (id: number) => {
+    apiFetch(`/api/events/${id}`, {
       method: "DELETE",
       cache: "no-store",
     })
       .then((res) => {
         if (res.ok) {
-          setBirthdays(birthdays.filter((b) => b.id !== id));
+          setEvents((prev) => prev.filter((e) => e.id !== id));
         }
       })
-      .catch((err) => console.error("Error deleting birthday:", err));
+      .catch((err) => console.error("Error deleting event:", err));
   };
 
   const formatMonthYear = (date: Date) =>
@@ -223,7 +221,7 @@ export default function BirthdaysPage() {
                 My Calendar
               </h1>
               <p className="text-muted-foreground">
-                Keep track of birthdays, tasks and holidays
+                Keep track of events, tasks and holidays
               </p>
             </div>
           </div>
@@ -281,16 +279,17 @@ export default function BirthdaysPage() {
                 </label>
                 <select
                   value={eventType}
-                  onChange={(e) => setEventType(e.target.value as "birthday" | "holiday" | "other")}
+                  onChange={(e) => setEventType(e.target.value as "event" | "holiday" | "other")}
                   className="w-full rounded-lg border border-sky-200 bg-white/80 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
                 >
-                  <option value="birthday">Birthday</option>
+                  <option value="event">Event</option>
                   <option value="holiday">Holiday</option>
                   <option value="other">Other</option>
                 </select>
               </div>
               <button
-                onClick={addBirthday}
+                type="button"
+                onClick={addEvent}
                 disabled={!name.trim() || !date}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-sky-500 to-indigo-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:from-sky-600 hover:to-indigo-600 disabled:cursor-not-allowed disabled:opacity-60"
               >
@@ -314,12 +313,16 @@ export default function BirthdaysPage() {
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3 text-[11px]">
               <label className="flex flex-col gap-1">
-                <span className="font-medium text-sky-800">Birthday color</span>
+                <span className="font-medium text-sky-800">Event color</span>
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
-                    value={birthdayColor || "#3b82f6"}
-                    onChange={(e) => setBirthdayColor(e.target.value)}
+                    value={eventColor}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setEventColor(value);
+                      persistColors({ eventColor: value });
+                    }}
                     className="h-8 w-12 cursor-pointer rounded-lg border-2 border-sky-100 bg-white p-1 shadow-sm transition-all hover:scale-105 hover:border-sky-300 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-md [&::-webkit-color-swatch]:border-none"
                   />
                 </div>
@@ -330,7 +333,11 @@ export default function BirthdaysPage() {
                   <input
                     type="color"
                     value={holidayColor || "#3b82f6"}
-                    onChange={(e) => setHolidayColor(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setHolidayColor(value);
+                      persistColors({ holidayColor: value });
+                    }}
                     className="h-8 w-12 cursor-pointer rounded-lg border-2 border-sky-100 bg-white p-1 shadow-sm transition-all hover:scale-105 hover:border-sky-300 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-md [&::-webkit-color-swatch]:border-none"
                   />
                 </div>
@@ -341,7 +348,11 @@ export default function BirthdaysPage() {
                   <input
                     type="color"
                     value={tasksColor || "#3b82f6"}
-                    onChange={(e) => setTasksColor(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setTasksColor(value);
+                      persistColors({ tasksColor: value });
+                    }}
                     className="h-8 w-12 cursor-pointer rounded-lg border-2 border-sky-100 bg-white p-1 shadow-sm transition-all hover:scale-105 hover:border-sky-300 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-md [&::-webkit-color-swatch]:border-none"
                   />
                 </div>
@@ -382,7 +393,7 @@ export default function BirthdaysPage() {
           <div className="grid grid-cols-7 gap-1 text-xs">
             {days.map((day) => {
               const iso = toISO(day);
-              const dayBirthdays = birthdays.filter((b) => {
+              const dayEvents = events.filter((b) => {
                 if (!b.date) return false;
                 const parts = b.date.split("-");
                 const bM = parseInt(parts[1], 10);
@@ -392,8 +403,7 @@ export default function BirthdaysPage() {
 
               const dayTasks = tasks.filter((t) => {
                 if (!t.dueDate) return false;
-                // חותכים רק את ה-10 תווים הראשונים (YYYY-MM-DD) כדי להשוות ל-ISO
-                const taskDateOnly = t.dueDate.split('T')[0];
+                const taskDateOnly = t.dueDate.split("T")[0];
                 return taskDateOnly === iso && !t.completed;
               });
               const dayHolidays = apiHolidays.filter((h) => {
@@ -425,28 +435,23 @@ export default function BirthdaysPage() {
                     )}
                   </div>
 
-                  {dayBirthdays.map((b, i) => {
-                    const isBirthday = b.type === "birthday";
-                    const birthYear = isBirthday ? Number(b.date.split("-")[0]) : undefined;
+                  {dayEvents.map((b, i) => {
+                    const isDatedEvent = isEventType(b.type);
+                    const eventYear = isDatedEvent ? Number(b.date.split("-")[0]) : undefined;
                     const currentYear = day.getFullYear();
-                    const age = isBirthday && birthYear ? currentYear - birthYear : undefined;
+                    const age = isDatedEvent && eventYear ? currentYear - eventYear : undefined;
 
                     return (
                       <div
                         key={i}
                         className="mb-1 flex items-center gap-1 text-[11px] font-medium"
-                        style={{ color: b.type === "holiday" ? holidayColor : birthdayColor }}
+                        style={{ color: b.type === "holiday" ? holidayColor : eventColor }}
                       >
                         <Gift className="h-3 w-3" />
                         <span className="truncate">
                           {b.name}
-                          {isBirthday && age && age > 0 && (
+                          {isDatedEvent && age && age > 0 && (
                             <span className="ml-0.5 opacity-80 text-[9px]">({age})</span>
-                          )}
-                          {b.type === "other" && (
-                            <span className="ml-0.5 text-[9px] uppercase opacity-70">
-                              (event)
-                            </span>
                           )}
                         </span>
                       </div>
@@ -487,7 +492,6 @@ export default function BirthdaysPage() {
         </section>
 
         <section className="mt-6 rounded-2xl border border-sky-100 bg-white/90 p-5 shadow-sm">
-          {/* כותרת עם כפתור הסתרה/הצגה */}
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-sky-900">
               All events
@@ -502,17 +506,16 @@ export default function BirthdaysPage() {
 
           {showEventsList && (
             <>
-              {birthdays.length === 0 ? (
+              {events.length === 0 ? (
                 <p className="text-xs text-muted-foreground">
                   No events saved yet. Add one using the form above.
                 </p>
               ) : (
                 <ul className="divide-y divide-sky-50 text-xs">
-                  {birthdays
+                  {events
                     .slice()
                     .sort((a, b) => a.date.localeCompare(b.date))
                     .map((b) => {
-                      const d = new Date(b.date);
                       return (
                         <li
                           key={b.id}
@@ -524,25 +527,21 @@ export default function BirthdaysPage() {
                                 {b.name}
                               </span>
                               <span className="text-[10px] uppercase text-sky-500 font-semibold mt-1">
-                                {b.type ? b.type : "Event"}
+                                {formatEventTypeLabel(b.type)}
                               </span>
                             </div>
 
                             <div className="text-right">
                               <span className="text-[11px] text-muted-foreground whitespace-nowrap ml-4">
-                                {d.toLocaleDateString("en-US", {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                })}
+                                {formatDisplayDate(b.date)}
                               </span>
                             </div>
                           </div>
 
                           <button
-                            onClick={() => deleteBirthday(b.id)}
+                            onClick={() => deleteEvent(b.id)}
                             className="ml-2 rounded-lg p-1.5 text-muted-foreground opacity-0 transition-all hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
-                            title="Delete birthday"
+                            title="Delete event"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
@@ -579,14 +578,13 @@ export default function BirthdaysPage() {
                     className="group flex items-center justify-between py-2 transition-colors hover:bg-sky-50/30"
                   >
                     <div className="flex flex-row items-center w-full py-1">
-                      { }
-                      <span className={`flex-1 font-medium ${t.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                      <span className={`flex-1 font-medium ${t.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
                         {t.title}
                       </span>
 
                       {t.dueDate && (
                         <span className="text-[10px] text-muted-foreground whitespace-nowrap ml-4">
-                          {new Date(t.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                          {formatDisplayDate(t.dueDate)}
                         </span>
                       )}
                     </div>
@@ -612,7 +610,6 @@ export default function BirthdaysPage() {
           {showHolidaysList && (
             <ul className="divide-y divide-sky-50 text-xs">
               {apiHolidays.map((h) => {
-                const d = new Date(h.date);
                 return (
                   <li
                     key={h.id}
@@ -626,11 +623,7 @@ export default function BirthdaysPage() {
                       {h.name}
                     </span>
                     <span className="text-[11px] text-muted-foreground">
-                      {d.toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
+                      {formatDisplayDate(h.date)}
                     </span>
                   </li>
                 );

@@ -2,7 +2,7 @@ import z from "zod";
 
 export const PrioritySchema = z.enum(["low", "medium", "high"]);
 export const CategorySchema = z.enum(["work", "personal", "health", "shopping", "other"]);
-export const EventTypeSchema = z.enum(["birthday", "holiday", "other"]);
+export const EventTypeSchema = z.enum(["event", "birthday", "holiday", "other"]);
 
 export const SubtaskSchema = z.object({
   id: z.number(),

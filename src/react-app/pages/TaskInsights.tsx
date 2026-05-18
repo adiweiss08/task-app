@@ -59,7 +59,7 @@ export default function TaskInsights() {
             <p className="text-slate-500">Data analysis of your productivity</p>
           </div>
 
-          <div className="flex flex-col items-end gap-4">
+          <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2">
             <Link
               to="/"
               className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white/70 px-4 py-2 text-sm font-medium text-sky-700 shadow-sm hover:bg-white hover:shadow-md transition-all"
@@ -68,6 +68,7 @@ export default function TaskInsights() {
               Back to tasks
             </Link>
             <button
+              type="button"
               onClick={logout}
               className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white/70 px-4 py-2 text-sm font-medium text-sky-700 shadow-sm hover:bg-white hover:shadow-md transition-all"
               title="Log out"

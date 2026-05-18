@@ -141,7 +141,7 @@ export default function HomePage() {
           </div>
           <div className="flex items-center justify-center gap-4 mt-6">
             <Link
-              to="/birthdays"
+              to="/events"
               className="inline-flex items-center gap-2 rounded-full border border-pink-200 bg-white/70 px-4 py-2 text-sm font-medium text-pink-700 shadow-sm hover:bg-white hover:shadow-md transition-all"
             >
               <CalendarDays className="h-4 w-4" />
@@ -295,12 +295,12 @@ export default function HomePage() {
         <div
           className={
             viewMode === "grid"
-              ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-              : "flex flex-col gap-3"
+              ? "grid grid-cols-3 gap-5"
+              : "flex flex-col items-center gap-4"
           }
         >
           {filteredAndSortedTodos.length === 0 ? (
-            <div className="py-16 text-center">
+            <div className="col-span-3 py-12 text-center">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-pink-100">
                 <CheckCircle2 className="h-8 w-8 text-pink-300" />
               </div>
@@ -312,6 +312,7 @@ export default function HomePage() {
               <TodoItem
                 key={todo.id}
                 todo={todo}
+                viewMode={viewMode}
                 onToggle={toggleTodo}
                 onDelete={deleteTodo}
                 onRemoveImage={removeImageFromTodo}
