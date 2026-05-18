@@ -295,8 +295,8 @@ export default function HomePage() {
         <div
           className={
             viewMode === "grid"
-              ? "grid grid-cols-3 gap-5"
-              : "flex flex-col items-center gap-4"
+              ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+              : "flex flex-col w-full gap-4"
           }
         >
           {filteredAndSortedTodos.length === 0 ? (

@@ -92,18 +92,23 @@ export function TodoItem({
     }
   };
 
-  const cardHeight = isList ? "h-40" : "h-56";
-  const cardWidth = isList ? "w-52 max-w-full mx-auto" : "w-full";
-  const imageSize = isList ? "h-24 w-24" : "h-20 w-20";
-  const headerHeight = isList ? "h-[5.5rem]" : "h-[5.75rem]";
-  const titleClass = isList ? "line-clamp-2 text-sm font-semibold" : "line-clamp-2 text-base font-semibold";
+  // משתני ממדים מובנים ישירות ללא שימוש במשתנים מחוקים
+  const imageSize = isList ? "h-16 w-16 md:h-20 md:w-20" : "h-20 w-20";
+  const titleClass = isList ? "text-base font-semibold text-wrap text-foreground" : "line-clamp-2 text-base font-semibold text-foreground";
 
   return (
     <div
-      className={`group flex ${cardHeight} ${cardWidth} flex-col overflow-hidden rounded-xl border bg-white ${categoryStyle.bg.replace("bg-", "border-").replace("-100", "-200")} ${todo.completed ? "opacity-60" : ""}`}
+      className={`group w-full overflow-hidden rounded-xl border bg-white ${categoryStyle.bg.replace("bg-", "border-").replace("-100", "-200")} ${todo.completed ? "opacity-60" : ""} transition-all ${
+        isList 
+          ? "p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-6 min-h-[120px]" 
+          : "h-56 flex flex-col"
+      }`}
     >
-      <div className="flex h-full min-h-0 flex-col p-3.5">
-        <div className={`flex ${headerHeight} flex-shrink-0 items-start gap-2`}>
+      {/* לוח פנימי - מתנהג שונה לחלוטין בין רשימה לגריד */}
+      <div className={isList ? "flex flex-1 min-w-0 flex-col md:flex-row md:items-center justify-between gap-4 w-full" : "flex h-full min-h-0 flex-col p-3.5"}>
+        
+        {/* דיב עוטף עליון (צ'קבוקס + כותרת + תגים) */}
+        <div className={isList ? "flex flex-1 min-w-0 items-start gap-3" : "flex h-[5.75rem] flex-shrink-0 items-start gap-2"}>
           <button type="button" onClick={() => onToggle(todo.id)} className="mt-0.5 flex-shrink-0">
             {todo.completed ? (
               <CheckCircle2 className="h-5 w-5 text-pink-500" />
@@ -114,11 +119,10 @@ export function TodoItem({
 
           <div className="flex min-h-0 min-w-0 flex-1 items-start gap-2.5">
             <div className="min-h-0 min-w-0 flex-1">
-              <p
-                className={`${titleClass} leading-snug ${todo.completed ? "text-muted-foreground line-through" : "text-foreground"}`}
-              >
+              <p className={`${titleClass} leading-snug ${todo.completed ? "text-muted-foreground line-through" : ""}`}>
                 {todo.title}
               </p>
+              
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 <Badge className={`h-5 px-1.5 py-0 text-[10px] font-medium border ${priorityStyles[todo.priority]}`}>
                   <Flag className="mr-0.5 h-2.5 w-2.5" />
@@ -129,9 +133,7 @@ export function TodoItem({
                   {todo.category}
                 </Badge>
                 {todo.dueDate && (
-                  <span
-                    className={`flex items-center gap-0.5 text-[10px] font-medium ${isOverdue ? "text-red-600" : "text-muted-foreground"}`}
-                  >
+                  <span className={`flex items-center gap-0.5 text-[10px] font-medium ${isOverdue ? "text-red-600" : "text-muted-foreground"}`}>
                     <Clock className="h-3 w-3" />
                     {formatDueLabel(todo.dueDate)}
                   </span>
@@ -145,51 +147,50 @@ export function TodoItem({
               </div>
             </div>
 
-            <div className={`${imageSize} flex-shrink-0`}>
-              {todo.imageUrl ? (
-                <div className={`relative ${imageSize}`}>
-                  <img
-                    src={todo.imageUrl}
-                    alt="Task attachment"
-                    className={`${imageSize} cursor-pointer rounded-lg border border-pink-100 object-cover`}
-                    onClick={() => onExpandImage(todo.imageUrl!)}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => onRemoveImage(todo.id)}
-                    className="absolute -right-1 -top-1 rounded-full bg-red-500 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                  >
-                    <Trash2 className="h-2.5 w-2.5" />
-                  </button>
-                </div>
-              ) : (
-                <label
-                  className={`flex ${imageSize} cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-pink-200 bg-pink-50/40 text-[9px] text-muted-foreground/70 opacity-0 transition-opacity hover:text-pink-500 group-hover:opacity-100`}
-                >
-                  <ImagePlus className="mb-0.5 h-4 w-4" />
-                  <span>Image</span>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleImageSelect(e, todo.id)}
-                    className="hidden"
-                  />
-                </label>
-              )}
-            </div>
+            {/* במצב גריד המקורי - המדיה מוצגת כאן בתוך ההדר קומפקטי */}
+            {!isList && (
+              <div className={`${imageSize} flex-shrink-0`}>
+                {todo.imageUrl ? (
+                  <div className={`relative ${imageSize}`}>
+                    <img
+                      src={todo.imageUrl}
+                      alt="Task attachment"
+                      className={`${imageSize} cursor-pointer rounded-lg border border-pink-100 object-cover`}
+                      onClick={() => onExpandImage(todo.imageUrl!)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => onRemoveImage(todo.id)}
+                      className="absolute -right-1 -top-1 rounded-full bg-red-500 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                    >
+                      <Trash2 className="h-2.5 w-2.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-pink-200 bg-pink-50/40 text-[9px] text-muted-foreground/70 opacity-0 transition-opacity hover:text-pink-500 group-hover:opacity-100">
+                    <ImagePlus className="mb-0.5 h-4 w-4" />
+                    <span>Image</span>
+                    <input ref={fileInputRef} type="file" accept="image/*" onChange={(e) => handleImageSelect(e, todo.id)} className="hidden" />
+                  </label>
+                )}
+              </div>
+            )}
           </div>
 
-          <button
-            type="button"
-            onClick={() => onDelete(todo.id)}
-            className="flex-shrink-0 rounded p-1 text-muted-foreground opacity-0 hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
-          >
-            <X className="h-3 w-3" />
-          </button>
+          {/* כפתור ה-X למחיקה מהירה במצב גריד */}
+          {!isList && (
+            <button
+              type="button"
+              onClick={() => onDelete(todo.id)}
+              className="flex-shrink-0 rounded p-1 text-muted-foreground opacity-0 hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
         </div>
 
-        <div className="mt-3 min-h-0 flex-1 overflow-y-auto border-t border-pink-50 pt-2 pl-7">
+        {/* חלק ה-Checklist / Subtasks */}
+        <div className={isList ? "mt-2 md:mt-0 pl-7 flex-1 max-w-xs" : "mt-3 min-h-0 flex-1 overflow-y-auto border-t border-pink-50 pt-2 pl-7"}>
           {todo.subtasks.map((subtask) => (
             <SubtaskItem
               key={subtask.id}
@@ -217,6 +218,7 @@ export function TodoItem({
                 autoFocus
                 className="min-w-0 flex-1 border-none bg-transparent text-xs outline-none"
               />
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={(e) => handleImageSelect(e, todo.id)} className="hidden" />
               <button type="button" onClick={handleAddSubtask} className="text-[10px] font-bold text-pink-500">
                 SAVE
               </button>
@@ -233,8 +235,47 @@ export function TodoItem({
             </button>
           )}
         </div>
+
+        {/* במצב רשימה בלבד: הבלוק הזה דוחף את התמונה ואת כפתור המחיקה לצד ימין בצורה אופקית מיושרת */}
+        {isList && (
+          <div className="flex items-center gap-4 flex-shrink-0 justify-end ml-auto md:ml-0 pl-7 md:pl-0 mt-2 md:mt-0">
+            <div className={`${imageSize} flex-shrink-0`}>
+              {todo.imageUrl ? (
+                <div className={`relative ${imageSize}`}>
+                  <img
+                    src={todo.imageUrl}
+                    alt="Task attachment"
+                    className={`${imageSize} cursor-pointer rounded-lg border border-pink-100 object-cover shadow-sm`}
+                    onClick={() => onExpandImage(todo.imageUrl!)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onRemoveImage(todo.id)}
+                    className="absolute -right-1 -top-1 rounded-full bg-red-500 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100 shadow"
+                  >
+                    <Trash2 className="h-2.5 w-2.5" />
+                  </button>
+                </div>
+              ) : (
+                <label className={`flex ${imageSize} cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-pink-200 bg-pink-50/40 text-[9px] text-muted-foreground/70 opacity-0 transition-opacity hover:text-pink-500 group-hover:opacity-100`}>
+                  <ImagePlus className="mb-0.5 h-4 w-4" />
+                  <span>Image</span>
+                  <input ref={fileInputRef} type="file" accept="image/*" onChange={(e) => handleImageSelect(e, todo.id)} className="hidden" />
+                </label>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => onDelete(todo.id)}
+              className="flex-shrink-0 rounded p-1.5 text-muted-foreground/50 hover:bg-red-50 hover:text-red-500 md:opacity-0 group-hover:opacity-100 transition-all"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
       </div>
     </div>
   );
 }
-
