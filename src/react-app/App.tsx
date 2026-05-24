@@ -28,7 +28,6 @@ export default function App() {
         <Route path="/signup" element={<AuthRedirect><SignupPage /></AuthRedirect>} />
         <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
         <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
-        <Route path="/birthdays" element={<Navigate to="/events" replace />} />
         <Route path="/stats" element={<ProtectedRoute><TaskInsights /></ProtectedRoute>} />
       </Routes>
     </Router>

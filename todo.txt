@@ -1,6 +1,0 @@
-how to run
-npx wrangler dev
-npm run dev
-
-on new computer
-npm run build

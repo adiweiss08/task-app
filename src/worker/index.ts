@@ -217,8 +217,6 @@ api.use("/todos/*", authMiddleware);
 api.use("/todos", authMiddleware);
 api.use("/events/*", authMiddleware);
 api.use("/events", authMiddleware);
-api.use("/birthdays/*", authMiddleware);
-api.use("/birthdays", authMiddleware);
 
 api.get("/todos", async (c) => {
   const userId = c.get("userId");
@@ -368,7 +366,6 @@ const handleGetEvents = async (c: { get: (key: "userId") => number; env: Env; ex
 };
 
 api.get("/events", handleGetEvents);
-api.get("/birthdays", handleGetEvents);
 
 api.post("/events", async (c) => {
   const userId = c.get("userId");
@@ -401,54 +398,7 @@ api.post("/events", async (c) => {
   }
 });
 
-api.post("/birthdays", async (c) => {
-  const userId = c.get("userId");
-  if (!userId) return c.json({ error: "Unauthorized - No user ID found" }, 401);
-  const body = await c.req.json();
-  const client = await getPgClient(c.env);
-  try {
-    const dateOnly = normalizeDateInput(String((body as { date: string }).date));
-    const result = await client.query(
-      `INSERT INTO birthdays (name, date, type, user_id) VALUES ($1, $2, $3, $4)
-       RETURNING id, name, type, date::text AS date, user_id`,
-      [
-        (body as { name: string }).name,
-        dateOnly,
-        normalizeEventType((body as { type?: string }).type),
-        userId,
-      ]
-    );
-    const response = c.json(parseEvent(result.rows[0] as Record<string, unknown>), 201);
-    c.executionCtx.waitUntil(client.end());
-    return response;
-  } catch (error: unknown) {
-    c.executionCtx.waitUntil(client.end());
-    return c.json({ error: "Failed to save event" }, 500);
-  }
-});
-
 api.delete("/events/:id", async (c) => {
-  const userId = c.get("userId");
-  const id = c.req.param("id");
-  const client = await getPgClient(c.env);
-  try {
-    const result = await client.query("DELETE FROM birthdays WHERE id = $1 AND user_id = $2 RETURNING id", [
-      id,
-      userId,
-    ]);
-    if (result.rowCount === 0) {
-      return c.json({ error: "Event not found" }, 404);
-    }
-    return c.json({ message: "Deleted successfully" }, 200);
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Error";
-    return c.json({ error: message }, 500);
-  } finally {
-    c.executionCtx.waitUntil(client.end());
-  }
-});
-
-api.delete("/birthdays/:id", async (c) => {
   const userId = c.get("userId");
   const id = c.req.param("id");
   const client = await getPgClient(c.env);
