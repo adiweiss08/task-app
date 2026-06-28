@@ -219,12 +219,10 @@ api.use("/events/*", authMiddleware);
 api.use("/events", authMiddleware);
 api.get("/todos", async (c) => {
   const userId = c.get("userId");
-  // בודק אם שלחו פרמטר include_archived=true ב-URL
   const includeArchived = c.req.query("include_archived") === "true";
   const client = await getPgClient(c.env);
   
   try {
-    // בניית השאילתה בצורה דינמית בהתאם לדרישה
     let queryStr = "SELECT * FROM todos WHERE user_id = $1";
     
     if (!includeArchived) {
@@ -336,47 +334,31 @@ api.delete("/todos/:id", async (c) => {
   const id = c.req.param("id");
   const client = await getPgClient(c.env);
   
-  // הדפסה 1: בדיקה שהבקשה בכלל הגיעה לכאן
-  console.log("=== [SERVER] DELETE ROUTE TRIGGERED ===");
-  console.log("Task ID:", id, "User ID:", userId);
-
   try {
     const checkResult = await client.query(
       "SELECT is_completed FROM todos WHERE id = $1 AND user_id = $2",
       [id, userId]
     );
 
-    // הדפסה 2: מה חזר מהשאילתה ב-DB?
-    console.log("DB Check Rows:", checkResult.rows);
-
     if (checkResult.rows.length === 0) {
-      console.log("Task not found in DB!");
       return c.json({ error: "Not found" }, 404);
     }
 
     const todo = checkResult.rows[0];
     
-    // הדפסה 3: מה בדיוק הערך והסוג של השדה is_completed
-    console.log("Raw is_completed from DB:", todo.is_completed, "Type:", typeof todo.is_completed);
-
     const isCompleted = 
       todo.is_completed === true || 
       todo.is_completed === 1 || 
       String(todo.is_completed).toLowerCase() === "true" ||
       String(todo.is_completed) === "1";
 
-    // הדפסה 4: האם התנאי שלנו חושב שהיא הושלמה?
-    console.log("Is task completed evaluated as:", isCompleted);
-
     if (isCompleted) {
-      console.log("-> EXECUTING SOFT DELETE (UPDATE to is_archived = 1) <-");
       await client.query(
         "UPDATE todos SET is_archived = 1, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND user_id = $2",
         [id, userId]
       );
       return c.json({ success: true, archived: true });
     } else {
-      console.log("-> EXECUTING HARD DELETE (DELETE FROM database) <-");
       await client.query(
         "DELETE FROM todos WHERE id = $1 AND user_id = $2",
         [id, userId]
