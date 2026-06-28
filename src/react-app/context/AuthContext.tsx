@@ -8,6 +8,7 @@ export interface User {
   username: string;
 }
 
+// Global state provider for session management. Exposes: login statuses, active profile tokens, and global logout routines.
 interface AuthContextType {
   user: User | null;
   token: string | null;

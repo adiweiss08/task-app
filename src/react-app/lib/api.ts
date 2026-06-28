@@ -6,6 +6,7 @@ const API_BASE =
 const TOKEN_KEY = "task_app_token";
 const USER_KEY = "task_app_user";
 
+// Inject JWT Bearer credentials inside request headers.
 function getToken(): string | null {
   try {
     return localStorage.getItem(TOKEN_KEY);

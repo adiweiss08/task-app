@@ -1,3 +1,4 @@
+// Set of mathematical date manipulation algorithms for timezone
 export function toDateOnlyString(dateVal: unknown): string | null {
   if (dateVal == null || dateVal === "") return null;
   if (typeof dateVal === "string") {

@@ -20,7 +20,8 @@ export default function TaskInsights() {
   const [todos, setTodos] = useState<Todo[]>([]);
 
   useEffect(() => {
-    apiFetch("/api/todos", { cache: "no-store" })
+    // הוספת ה-Query Parameter כדי למשוך גם משימות מהארכיון לגרפים
+    apiFetch("/api/todos?include_archived=true", { cache: "no-store" })
       .then((res) => res.json())
       .then((data) =>
         setTodos(

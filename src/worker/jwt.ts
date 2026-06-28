@@ -2,6 +2,7 @@ import * as jose from "jose";
 
 export type JwtPayload = { userId: number; username: string };
 
+// Generates and cryptographically signs a JWT token for an authenticated user.
 export async function signToken(
   payload: JwtPayload,
   secret: string
@@ -14,6 +15,7 @@ export async function signToken(
     .sign(key);
 }
 
+//Decrypts and validates an incoming JWT token from client requests.
 export async function verifyToken(
   token: string,
   secret: string

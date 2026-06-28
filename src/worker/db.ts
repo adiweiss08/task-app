@@ -1,5 +1,6 @@
 import { Client } from "pg";
 
+// Manages connection pooling and caching for Neon PostgreSQL
 export async function getPgClient(env: any) {
   const client = new Client({
     connectionString: env.DATABASE_URL,

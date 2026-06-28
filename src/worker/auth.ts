@@ -1,3 +1,4 @@
+// Hashes a plain-text password using the PBKDF2 algorithm.
 export async function hashPassword(
   password: string,
   providedSalt?: Uint8Array

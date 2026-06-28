@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from "react-router";
 import { useAuth } from "@/react-app/context/AuthContext";
 
+// A Route Guard component that controls access to private client-side application pages.
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();

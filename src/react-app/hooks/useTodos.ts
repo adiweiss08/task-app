@@ -16,9 +16,12 @@ export function useTodos() {
   const todosRef = useRef<Todo[]>([]);
   todosRef.current = todos;
 
-  const refetchTodos = useCallback(async () => {
+  // עדכון: הוספת תמיכה בפרמטר includeArchived
+  const refetchTodos = useCallback(async (includeArchived?: boolean) => {
     try {
-      const res = await apiFetch("/api/todos", {
+      const url = includeArchived ? "/api/todos?include_archived=true" : "/api/todos";
+      
+      const res = await apiFetch(url, {
         method: "GET",
         headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
       });
@@ -30,6 +33,7 @@ export function useTodos() {
     }
   }, []);
 
+  // ברירת המחדל בטעינה ראשונית (למשל בדף הבית) היא להביא רק משימות פעילות
   useEffect(() => {
     void refetchTodos();
   }, [refetchTodos]);

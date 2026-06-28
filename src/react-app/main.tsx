@@ -4,6 +4,7 @@ import "@/react-app/index.css";
 import App from "@/react-app/App.tsx";
 import { AuthProvider } from "@/react-app/context/AuthContext";
 
+// Renderer and injects the core application tree inside the single HTML root container.
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <AuthProvider>

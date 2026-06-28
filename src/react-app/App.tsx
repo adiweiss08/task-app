@@ -7,6 +7,8 @@ import SignupPage from "@/react-app/pages/SignupPage";
 import { ProtectedRoute } from "@/react-app/components/ProtectedRoute";
 import { useAuth } from "@/react-app/context/AuthContext";
 
+
+// Client-side application coordinator.
 function AuthRedirect({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   if (isLoading) {

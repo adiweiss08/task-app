@@ -4,6 +4,8 @@ To run the devserver:
 ```
 npm install
 npm run dev
+
+npx wrangler dev src/worker/index.ts
 ```
 
 deploy this
